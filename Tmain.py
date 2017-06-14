@@ -75,16 +75,18 @@ def tf_idf(terms, documents):
 
 if __name__ == "__main__":
     # 全トリプルの抽出
-    Dc = Deepcase(path_List["Neural_network"], path_List["dummylist"], path_List["NV_class"])
-    Ce= Cases_extract(Dc)
+    print "全トリプルの抽出"
+    Dc = Deepcase(path_List["Neural_network"], path_List["dummylist"], path_List["NV_class"])       #Deepcaseのオブジェクトを作る
+    Ce= Cases_extract(Dc)       #Cases_extractのオブジェクトを作る
 
-    triplelist = Ce.Triple_extract(path_List["Treport"])
+    triplelist = Ce.Triple_extract(path_List["Treport"])        #Ce.Triple_extractに報告書データのパスを投げる
     Nounlist = []
     Particlelist = []
     Verblist = []
     Ridlist = []
     Sidlist = []
     Vidlist = []
+
     for T_keys, T_values in zip(triplelist.keys(), triplelist.values()):
         for tri_tmp in T_values:
             Nounlist.append(tri_tmp[0])
@@ -99,11 +101,12 @@ if __name__ == "__main__":
     tripleFrame.to_csv(path_List["Triple"], index=False, encoding='shift-jis')
     #'''
     # トリプルから事象の抽出
+    print "トリプルから事象の抽出"
     #'''
-    # tripleFrame = pd.read_csv(path_List["Triple"], encoding='shift-jis')
-    # tripleFrame_Treport = Ce.TNoun_extract(tripleFrame, Dc.NV_class)
-    # tripleFrame_Treport.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True)
-    # tripleFrame_Treport.to_csv(path_List["Triple_Treport"], index=False, encoding='shift-jis')
+    tripleFrame = pd.read_csv(path_List["Triple"], encoding='shift-jis')
+    tripleFrame_Treport = Ce.TNoun_extract(tripleFrame, Dc.NV_class)
+    tripleFrame_Treport.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True)
+    tripleFrame_Treport.to_csv(path_List["Triple_Treport"], index=False, encoding='shift-jis')
     #'''
     # 未登録語の登録
     '''
@@ -112,12 +115,15 @@ if __name__ == "__main__":
     '''
     #'''
     #格フレームの構築
+    print "格フレームの構築"
     tripleFrame_Treport = pd.read_csv(path_List["Triple_Treport"], encoding='shift-jis')
     case_df = Ce.create_caseframe(tripleFrame_Treport)
     case_df.to_csv(path_List["caseframe"], encoding='shift-jis', index=False)
     #'''
     case_df = pd.read_csv(path_List["caseframe"], encoding='shift-jis')
+    print case_df
     #語句の重み（idf）算出
+    print "語句の重み（idf）算出"
     '''
     terms, documents = Ce.extract_terms(case_df)
     idf_Treport = idf(terms, documents)
@@ -144,9 +150,8 @@ if __name__ == "__main__":
     file.close()
 
     #設備クラスタ（学部研究で分類した似た特徴を持つ設備）が含まれる報告書の抽出
-    print "Tclusterを開いています..."
+    print "設備クラスタ（学部研究で分類した似た特徴を持つ設備）が含まれる報告書の抽出"
     EXL = pd.ExcelFile(path_List["Tcluster"][0])  # xlsxファイルをPython上で開く
-    print"読み込み完了"
     Tcluster = EXL.parse(path_List["Tcluster"][1])
 
     #case_df_Tcluster = case_df.ix[case_df[u"報告書_id"].map(lambda x: x in list(Tcluster[u"分析NO"].drop_duplicates())), :]
@@ -175,17 +180,19 @@ if __name__ == "__main__":
     file.close()
     '''
     #省略語の補完と因果連鎖分割
+    print "省略語の補完と因果連鎖分割"
     #'''
-    # file = open(path_List["VC_Dc"])
-    # VC_Dc = pickle.load(file)
-    # file.close()
-    # output_thresold = 80
+    file = open(path_List["VC_Dc"])
+    VC_Dc = pickle.load(file)
+    file.close()
+    output_thresold = 80
     # maxList_perD, thresold_perD = Ce.Cal_thresold(case_df_Tcluster, output_thresold)
     # case_df_Tcluster_sec = Ce.Section_div(case_df_Tcluster, VC_Dc, thresold_perD)
     # case_df_Tcluster_sec.to_csv(path_List["caseframe_sec"], encoding='shift-jis', index=False)
     #'''
 
     #事象間の類似度算出
+    print "事象間の類似度算出"
     case_df_Tcluster_sec = pd.read_csv(path_List["caseframe_sec"], encoding='shift-jis')
     cases = case_df_Tcluster_sec[u"主体"] + " " + case_df_Tcluster_sec[u"起点"] + " " + case_df_Tcluster_sec[u"対象"] + " " + case_df_Tcluster_sec[u"状況"] + " " + \
             case_df_Tcluster_sec[u"着点"] + " " + case_df_Tcluster_sec[u"手段"] + " " + case_df_Tcluster_sec[u"関係"] + " " + case_df_Tcluster_sec[u"動詞"]
@@ -193,6 +200,7 @@ if __name__ == "__main__":
         cases[i] = re.sub(r" +", u" ", cases[i].strip())
     pro_zeroNoun = case_df_Tcluster_sec.ix[case_df_Tcluster_sec[u"事象"] != cases, :]
     #類似度算出手法及び、統合する類似度の閾値
+    print "類似度算出手法及び、統合する類似度の閾値"
     dist_method = u"Jaccard"
     threshould_dist = 0.4
     #dist_method = u"Simpson"
@@ -200,6 +208,7 @@ if __name__ == "__main__":
 
     #'''
     # 確認データ数
+    print "確認データ数"
     N = 1000
     ExNlist = random.sample(case_df_Tcluster_sec[u"報告書_id"].drop_duplicates(), N)
     case_df_Tcluster_sec = case_df_Tcluster_sec.ix[case_df_Tcluster_sec[u"報告書_id"].map(lambda x: x in ExNlist), :]
@@ -211,6 +220,7 @@ if __name__ == "__main__":
     Wdist = pd.read_csv(path_List["Wdist"], encoding='shift-jis')
 
     #設備クラスタごとに事象の出現の有無(0, 1)行列の作成
+    print "設備クラスタごとに事象の出現の有無(0, 1)行列の作成"
     for cluster in Tcluster[u"$T1-TwoStep"].drop_duplicates():
         if cluster != u"-1":
             id_perC_tmp = set(Tcluster[Tcluster[u"$T1-TwoStep"] == cluster][u"分析NO"]).intersection(
@@ -237,7 +247,7 @@ if __name__ == "__main__":
         case_mat[Ci].to_csv(cm_path, encoding='shift-jis', index=False)
         #出現頻度1の事象を抽出
         Fre1_cases[Ci] = case_mat[Ci].columns[case_mat[Ci].sum() == 1]
-        Fc_path = u"data/Fre1_cases_%s.csv" % ClusterN
+        Fc_path = u"C:/Fre1_cases_%s.csv" % ClusterN
         Series(Fre1_cases[Ci]).to_csv(Fc_path, encoding='shift-jis', index=False)
         #出現頻度1以上の事象を抽出
         indexer = case_mat[Ci].sum() > 1

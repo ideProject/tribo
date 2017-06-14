@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-###
+
 from Treport import Treport
 from Language import Language
 from pandas import DataFrame, Series
@@ -19,22 +19,22 @@ class Cases_extract:
         self.Dc = Dc
     #トリプル（名詞＋助詞＋動詞）を抽出するメソッド
     def Triple_extract(self, path):
-            TR = Treport(path)
-            triplelist = {}
+            TR = Treport(path)      #Treportに報告書データのパスを投げる
+            triplelist = {}         #辞書型のtriplelistを作る
             Mor_con = [[u"形容詞", u"助動詞", u"接続詞"], [u"連体化", u"並立助詞", u"読点", u"接続助詞"]]
-            for i in range(1, TR.s.nrows):
+            for i in range(1, TR.s.nrows):      #TR.s--報告書データ   TR.s.nrows--報告書の行数
                 #if i>TR.s.nrows/2: break
                 if i>10: break
                 print i
 
-                noenc = TR.delete_unnecc(i)
+                noenc = TR.delete_unnecc(i)     #noenc--いい感じの本文
                 #print TR.s.cell_value(i, 2).replace(u"-", u"")
                 #print noenc
-                for Sentence_id, perSen in enumerate(noenc.split(u"。")):
+                for Sentence_id, perSen in enumerate(noenc.split(u"。")):        #Sentence_id--enumerateで作られたインクリメントが入る　perSen--。区切りの文が入る
                    # TR.s.cell_value(i, 2)
-                    Lan = Language(perSen)
-                    cabocha_xml = Lan.cabocha_command()
-                    chunkinfo, tokinfo, sentence_tok = Lan.chunk_structured(cabocha_xml)
+                    Lan = Language(perSen)      #考察の一文を投げてLanguageのオブジェクトを作る
+                    cabocha_xml = Lan.cabocha_command()     #Lanの中のcabocha_commandを呼ぶとオブジェクトを作った際にLanguageのselfに与えられた文書がcabochaで係り受け解析されその返り値がcabocha_xmlに入る
+                    chunkinfo, tokinfo, sentence_tok = Lan.chunk_structured(cabocha_xml)        #
                     #triple_perR = []
                     #id_perR = []
                     for chunk in chunkinfo:
@@ -425,12 +425,6 @@ class Cases_extract:
                                 Noun_comp = u""
                         elif Mor_1[mi] != u"助詞" and Mor_1[mi] != u"助動詞" and Mor[5] != u"サ変・スル" and Mor[2] != u"接尾":
                             #print Mor[0]
-                            tmp= Mor[0]
-                            if tmp in terms:
-                                print "あるよ"
-                            else:
-                                print ""
-
                             MorList_tmp[Mor[0]] = idf_Treport[terms.index(Mor[0])]
 
             MorList.append(MorList_tmp)

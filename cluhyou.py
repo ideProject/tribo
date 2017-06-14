@@ -1,4 +1,4 @@
-dict = {}
+###dict = {}
 for i,sinsou in enumerate(a):
     dict[sinsou]=clusterN[i]
 

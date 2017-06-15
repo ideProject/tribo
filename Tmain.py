@@ -80,6 +80,7 @@ if __name__ == "__main__":
     Ce= Cases_extract(Dc)       #Cases_extractのオブジェクトを作る
 
     triplelist = Ce.Triple_extract(path_List["Treport"])        #Ce.Triple_extractに報告書データのパスを投げる
+    print triplelist                                           #triplelist--辞書型データで、{(報告書番号,文章番号,動詞番号):[(名詞,助詞,動詞)],......}
     Nounlist = []
     Particlelist = []
     Verblist = []
@@ -87,14 +88,17 @@ if __name__ == "__main__":
     Sidlist = []
     Vidlist = []
 
-    for T_keys, T_values in zip(triplelist.keys(), triplelist.values()):
-        for tri_tmp in T_values:
-            Nounlist.append(tri_tmp[0])
-            Particlelist.append(tri_tmp[1])
-            Verblist.append(tri_tmp[2])
-            Ridlist.append(T_keys[0])
-            Sidlist.append(T_keys[1])
-            Vidlist.append(T_keys[2])
+    for T_keys, T_values in zip(triplelist.keys(), triplelist.values()):        #T_keysにtriplelistのkey(報告書、文章、動詞番号)、T_valuesに(名詞、助詞、動詞)が入っている
+                                                                                #それを分割してそれぞれを変数に代入している
+        #for tri_tmp in T_values:
+        tri_tmp = T_values[0]
+        Nounlist.append(tri_tmp[0])
+        Particlelist.append(tri_tmp[1])
+        Verblist.append(tri_tmp[2])
+        Ridlist.append(T_keys[0])
+        Sidlist.append(T_keys[1])
+        Vidlist.append(T_keys[2])
+
     tripleFrame = DataFrame({u"報告書_id":Ridlist, u"文_id":Sidlist, u"動詞_id":Vidlist, u"名詞":Nounlist, u"助詞":Particlelist, u"動詞":Verblist}, columns=[u"報告書_id", u"文_id", u"動詞_id", u"名詞", u"助詞", u"動詞"])
     tripleFrame.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True)
     tripleFrame[u"報告書_id"] = [int(i) for i in tripleFrame[u"報告書_id"]]
@@ -186,7 +190,7 @@ if __name__ == "__main__":
     VC_Dc = pickle.load(file)
     file.close()
     output_thresold = 80
-    # maxList_perD, thresold_perD = Ce.Cal_thresold(case_df_Tcluster, output_thresold)
+    # maxList_perD, thresold_perD = Ce.Cal_thresold(case_df_Tcluster, output_thresold)          #ここ3つが書き込むいろいろな処理
     # case_df_Tcluster_sec = Ce.Section_div(case_df_Tcluster, VC_Dc, thresold_perD)
     # case_df_Tcluster_sec.to_csv(path_List["caseframe_sec"], encoding='shift-jis', index=False)
     #'''

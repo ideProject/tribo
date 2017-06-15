@@ -37,14 +37,19 @@ class Language:
         tokinfo = []
         sentence_tok = []
         for chunklist in elem.findall(u".//chunk"):
-            chunkinfo.append(dict(chunklist.items()))  # head,rel,score,link,func,idの情報を辞書型にappendしている
+            chunkinfo.append(dict(chunklist.items()))  # head,rel,score,link,func,idの情報を辞書型でappendしている
             tokinfo_tmp = []
             sentence_tok_tmp = []
-            for toklist in chunklist.findall(u".//tok"):
-                #                print unicode(toklist.items()[1][1].split(u","),'utf-8')
-                print toklist.items()[1][1]
-                tokinfo_tmp.append(tuple(toklist.items()[1][1].split(u",")))
+            for toklist in chunklist.findall(u".//tok"):        #toklist--[('id',''),('feature',)]って感じ
+
+                # print "aaaaaaaaaaa"
+                # print chunklist.items()
+                # print "bbbbbbbbbbb"
+                # print toklist.items()
+
+                tokinfo_tmp.append(tuple(toklist.items()[1][1].split(u",")))        #toklist--cabochaで解析した出力が入っている　名詞、接続*,*,*,*,使用、シヨウ、ショー、的な
                 sentence_tok_tmp.append(toklist.text)
+            #for文終わりでchunklist内の情報がtoklistを通じてtokinfo_tmpに書き込まれている
             tokinfo.append(tuple(tokinfo_tmp))
             sentence_tok.append(tuple(sentence_tok_tmp))
         return chunkinfo, tokinfo, sentence_tok

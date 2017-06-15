@@ -31,17 +31,20 @@ class Cases_extract:
                 #print TR.s.cell_value(i, 2).replace(u"-", u"")
                 #print noenc
                 for Sentence_id, perSen in enumerate(noenc.split(u"。")):        #Sentence_id--enumerateで作られたインクリメントが入る　perSen--。区切りの文が入る
-                   # TR.s.cell_value(i, 2)
+                    # TR.s.cell_value(i, 2)
                     Lan = Language(perSen)      #考察の一文を投げてLanguageのオブジェクトを作る
                     cabocha_xml = Lan.cabocha_command()     #Lanの中のcabocha_commandを呼ぶとオブジェクトを作った際にLanguageのselfに与えられた文書がcabochaで係り受け解析されその返り値がcabocha_xmlに入る
-                    chunkinfo, tokinfo, sentence_tok = Lan.chunk_structured(cabocha_xml)        #
+                    chunkinfo, tokinfo, sentence_tok = Lan.chunk_structured(cabocha_xml)        #chunkinfo,tokinfo,sentence_tokにそれぞれLanguage内のchunk_structured()の返り値が入る
+                                                                                                #chunkinfo--文書内の文節、単語ごとにcabochaから割り当てられる係り先などの情報が入っている  辞書型
+                                                                                                #tokinfo--cabochaの構文解析で得られるような品詞やらなんやらの情報が入っている リスト型
+                                                                                                #sentence_tok--単語などのまとまりがリスト形式で入っている    [('対象','設備','の'),...]
                     #triple_perR = []
                     #id_perR = []
                     for chunk in chunkinfo:
                         compnoun_tail_id = -1
-                        for tok_id, tokinfo_mor in enumerate(tokinfo[int(chunk[u"id"])]):
-                            #print tok_id, compnoun_tail_id
-                            if tok_id <= compnoun_tail_id:
+                        for tok_id, tokinfo_mor in enumerate(tokinfo[int(chunk[u"id"])]):   #tok_id--enumrateのインクリメント、tokinfo_mor--
+                            #print tok_id, compnoun_tail_id      #tok_id--今の単語の文節番号、compnoun_tail_id--係り先の番号
+                            if tok_id <= compnoun_tail_id:      #
                                 continue
                             sentence_tok_set = sentence_tok[int(chunk[u"id"])]
                             if tokinfo_mor[0]==u"名詞":

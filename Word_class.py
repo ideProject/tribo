@@ -39,7 +39,7 @@ class Word_class:
             Nclasslist = self.Nclass[Noun]
         else:
             lan = Language(Noun)
-            word = lan.getMorpheme()
+            word = lan.getMorpheme()    #mecabの処理を行う
             Noun_tail = word[len(word)-1][0]
             if Noun_tail in self.Nclass.keys():
                 Nclasslist = self.Nclass[Noun_tail]

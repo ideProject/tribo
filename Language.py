@@ -11,21 +11,20 @@ class Language:
     def __init__(self, str):
         self.str = str
 
+    #mecabの処理をして返してくれる
     def getMorpheme(self):
         # out = subprocess.check_output("echo %s | mecab" %self.str,shell=True)
-        out = subprocess.check_output("echo %s | mecab" % self.str.encode("shift-jis"), shell=True)
+        out = subprocess.check_output("echo %s | mecab" % self.str.encode("shift-jis"), shell=True) #mecabに名詞を投げて、レスポンスをoutに入れている
         meout = []
-        for line in out.split("\n"):
+        for line in out.split("\n"):    #mecabの解析結果を行ごとにsplitしている
             if line == "EOS\r":
                 break
             line_new = line.replace("\t", ",")
             meout.append(line_new.decode('shift-jis'))
-
         outlist = []
         for record in meout:
             outlist.append(record.split(u","))
-
-        return outlist
+        return outlist  #mecabの解析結果すべてを','で分けたもの(リスト型)を返している
 
     def cabocha_command(self, cmd_option="-f3"):
         out = subprocess.check_output("echo %s | cabocha %s" % (self.str.encode("shift-jis"), cmd_option), shell=True)

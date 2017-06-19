@@ -13,6 +13,7 @@ import pickle    #事象間の類似度算出
 
 import re
 import numpy as np
+import sys
 
 class Cases_extract:
     def __init__(self, Dc):
@@ -23,8 +24,10 @@ class Cases_extract:
             triplelist = {}         #辞書型のtriplelistを作る
             Mor_con = [[u"形容詞", u"助動詞", u"接続詞"], [u"連体化", u"並立助詞", u"読点", u"接続助詞"]]
             for i in range(1, TR.s.nrows):      #TR.s--報告書データ   TR.s.nrows--報告書の行数
-                #if i>TR.s.nrows/2: break
-                if i>10: break
+                #if i>TR.s.nrows/2: break   #本番はこれ？もしくはbreak無しのループかも
+                #if i>10: break  #実験用の小規模なループ？
+                if i>1: break   #より小規模なループ
+
                 print i
 
                 noenc = TR.delete_unnecc(i)     #noenc--いい感じの本文
@@ -116,35 +119,41 @@ class Cases_extract:
             return triplelist
     #事象となりうる名詞が含まれるトリプルを抽出
     def TNoun_extract(self, tripleFrame, NV_class):
-        TW = TWordclass()
-        unify_particle= lambda x: TW.Particle_to.get(x, x)
-        tripleFrame[u"助詞"] = tripleFrame[u"助詞"].map(unify_particle)
-        triple_Treport = [[] for i in range(len(tripleFrame.columns) + 1)]
+        TW = TWordclass()       #TWordclass--名詞助詞動詞がまとまっているクラス、表記揺れなどを訂正する記述もある
+        unify_particle= lambda x: TW.Particle_to.get(x, x)      #lambda--無名関数、unify_particle(x)=TW.Particle_to.get(x,x)という意味、Particle_toは助詞揺らぎの矯正
+        tripleFrame[u"助詞"] = tripleFrame[u"助詞"].map(unify_particle)     #map()--リストやタプルのすべての要素に対して同じ処理をする、ここではtripleFrameのすべての助詞をunify_particleを用いて表記揺れを直している
+        triple_Treport = [[] for i in range(len(tripleFrame.columns) + 1)]  #tripleFrameのカラム分triple_Treportに[]を作る
         for R_id, S_id, V_id, noun, particle, verb in zip(tripleFrame[u"報告書_id"], tripleFrame[u"文_id"], tripleFrame[u"動詞_id"],
                                                      tripleFrame[u"名詞"], tripleFrame[u"助詞"], tripleFrame[u"動詞"],
-                                                     ):
+                                                     ): #tripleFrameの各報告書のデータを代入している
             #if id >300: break
             #print noun, particle, verb
             print "Extracting triple_Treport:", R_id, S_id, V_id
-            Lan = Language(noun)
-            outList = Lan.getMorpheme()
-            Mor_1 = [outList[i][1] for i in range(len(outList))]
-            Mor_2 = [outList[i][2] for i in range(len(outList))]
+            Lan = Language(noun)        #名詞を引数としてLanguageのオブジェクトを作る、noun--報告書id、文id、動詞idに一致するものに与えられている名詞をLanguageのselfに渡すことで次のgetMorphemeで解析を行っている
+            outList = Lan.getMorpheme() #','区切りでリスト型の解析結果が返ってくる
+            Mor_1 = [outList[i][1] for i in range(len(outList))]    #品詞について
+            Mor_2 = [outList[i][2] for i in range(len(outList))]    #接続について
+
+            # print "outList",outList
+            # print "Mor_1",Mor_1
+            # print "Mor_2",Mor_2
+            # sys.exit()
+
             noun_comp_tmp = u""
             noun_comp = []
             noun_tail = []
             noun_Pos1 = []
             noun_Pos2 = []
-            for mi, Pos in enumerate(Mor_1):
+            for mi, Pos in enumerate(Mor_1):    #miにインクリメント、Posにそれぞれの品詞
                 if mi==len(Mor_1)-1:
                     noun_comp.append(noun_comp_tmp + outList[mi][0])
-                    noun_tail.append(outList[mi][0])
-                    noun_Pos1.append(outList[mi][1])
-                    noun_Pos2.append(outList[mi][2])
+                    noun_tail.append(outList[mi][0])    #outList[mi][0]--名詞部分
+                    noun_Pos1.append(outList[mi][1])    #outList[mi][0]--品詞部分
+                    noun_Pos2.append(outList[mi][2])    #outList[mi][0]--接続部分
                     break
                 if Pos==u"名詞":
                     if Mor_1[mi+1]==u"名詞":
-                        noun_comp_tmp += outList[mi][0]
+                        noun_comp_tmp += outList[mi][0] #名詞ならnoun_comp_tmpに追加する
                     else:
                         noun_comp.append(noun_comp_tmp+outList[mi][0])
                         noun_tail.append(outList[mi][0])
@@ -152,47 +161,55 @@ class Cases_extract:
                         noun_Pos2.append(outList[mi][2])
                         noun_comp_tmp = u""
 
+            # print "noun_comp",noun_comp
+            # print "noun_tail",noun_tail
+            # print "noun_Pos1",noun_Pos1
+            # print "noun_Pos2",noun_Pos2
+            # print NV_class[0][1]
+            # sys.exit()
 
-            TNneed = False
-            TVneed = False
+            TNneed = False  #トライボロジーに関係するものかを判断する必要があるかないか
+            TVneed = False  #
 
             #トライボロジーに関係する名詞か判定
-            for cni, nounMor in enumerate(noun_comp):
-                if noun_Pos2[cni] == u"代名詞" :
+            for cni, nounMor in enumerate(noun_comp):   #cni--enumerateによるインクリメント、nounMor--noun_compの名詞
+                if noun_Pos2[cni] == u"代名詞" :   #代名詞ならTNneedをTrue
                     TNneed = True
                     break
-                if nounMor in NV_class[0].keys():
-                    noun_target = nounMor
-                elif noun_tail[cni] in NV_class[0].keys():
-                    noun_target = noun_tail[cni]
+                if nounMor in NV_class[0].keys():   #NV_class(名詞か動詞かのクラス)のなかにあるかないか
+                    noun_target = nounMor   #あるならnoun_targetに代入
+                elif noun_tail[cni] in NV_class[0].keys():  #
+                    noun_target = noun_tail[cni]    #
                 else:
-                    continue
+                    continue    #トライボロジーに関係がない場合は次の単語へ
 
+                # 関係がある可能性があると判断した時
                 for Nclass in NV_class[0][noun_target]:
-                    if Nclass in TW.TNounclass_all:
+                    if Nclass in TW.TNounclass_all: #NclassがTNounclass_all(すべて抽出する)の中にあるならTNneedをTrue
                         TNneed = True
                         break
-                    elif Nclass in TW.TNounclass_Nopart.keys():
+                    elif Nclass in TW.TNounclass_Nopart.keys(): #TNounclass_Nopart(部分一致でなければ抽出)
                         TNneed = True
                         for TNoun_Nopart in TW.TNounclass_Nopart[Nclass]:
-                            if TNoun_Nopart in noun_target:
+                            if TNoun_Nopart in noun_target: #NV_classの中にあるものなら
                                 TNneed = False
 
-                            elif Nclass==u"様相" and noun_Pos2[cni]==u"形容動詞語幹":
+                            elif Nclass==u"様相" and noun_Pos2[cni]==u"形容動詞語幹":   #この条件でもFalseにする
                                 TNneed = False
 
 
-                    elif Nclass in TW.TNounclass_part.keys():
+                    elif Nclass in TW.TNounclass_part.keys():   #NclassがTNounclass_part(部分一致であるなら抽出)の中にあるなら
                         for TNoun_part in TW.TNounclass_part[Nclass]:
-                            if TNoun_part in noun_target:
+                            if TNoun_part in noun_target:   #TNoun_partがNV_classにあるなら
                                 TNneed = True
                                 break
                     else:
                         continue
+
             #トライボロジーに関係する動詞か判定
-            if TNneed:
-                if verb in NV_class[1].keys():
-                    for Vclass in NV_class[1][verb]:
+            if TNneed:  #名詞が関係すると判定されているとき
+                if verb in NV_class[1].keys():  #もし動詞がNV_classにあるとき
+                    for Vclass in NV_class[1][verb]:    #
                         if Vclass in TW.TVerbclass_all:
                             TVneed = True
                             break
@@ -210,12 +227,12 @@ class Cases_extract:
                         else:
                             continue
 
-            if TNneed and TVneed:
+            if TNneed and TVneed:       #もし名詞と動詞両方がトライボロジーに関係するとき
                 #並列している名詞の分解
                 Mor_connect = [[u"接続詞"],[u"読点", u"並立助詞", u"接続助詞"]]
-                if set(Mor_connect[0]).intersection(set(Mor_1)) or set(Mor_connect[1]).intersection(set(Mor_2)):
+                if set(Mor_connect[0]).intersection(set(Mor_1)) or set(Mor_connect[1]).intersection(set(Mor_2)):    #set([a]).intersection(set([b]))--set[a]とset[b]の共通部分だけ出力、if文の中では共通のものがあればTure
                     noun_con = u""
-                    for oi, out in enumerate(outList):
+                    for oi, out in enumerate(outList):  #oiにはenumrateのインクリメント、outには','区切りの解析結果
                         if outList[oi][1] not in Mor_connect[0] and outList[oi][2] not in Mor_connect[1]:
                             if out[0]!=u"等":
                                 noun_con += out[0]
@@ -260,25 +277,25 @@ class Cases_extract:
 
         fvu = lambda x: TW.Verb_unify.get(x, x)
         tripleFrame_Treport[u"動詞"] = tripleFrame_Treport[u"動詞"].map(fvu)
-        return tripleFrame_Treport
+        return tripleFrame_Treport      #いろいろ精査してtripleFrame_Treportを返す
 
     #格フレームの抽出
     def create_caseframe(self, tripleFrame_Treport):
         Result_input = []
         Result_output = []
 
-        DeepCase_Noun_perV = [[] for i in range(len(self.Dc.DeepCaseList) + 1)]
+        DeepCase_Noun_perV = [[] for i in range(len(self.Dc.DeepCaseList) + 1)] #DeepCaseList分の[]を作る
         # SurfaceCase_Noun_perV = [[] for i in range(len(Dc.dummylist[2].columns)+1)]
 
-        DeepCase_Noun = [[] for i in range(len(self.Dc.DeepCaseList) + 1)]
+        DeepCase_Noun = [[] for i in range(len(self.Dc.DeepCaseList) + 1)]  #DeepCaseList分の[]を作る
         # SurfaceCase_Noun = [[] for i in range(len(Dc.dummylist[2].columns)+1)]
         Verb_target = []
         Verb_target_id = []
-        for Report_id in tripleFrame_Treport[u"報告書_id"].drop_duplicates():
-            tripleFrame_Treport_sort = tripleFrame_Treport.ix[tripleFrame_Treport[u"報告書_id"] == Report_id,
-                                       :].sort_index(by=[u"文_id", u"動詞_id"])
+        for Report_id in tripleFrame_Treport[u"報告書_id"].drop_duplicates():  #drop_duplicates--重複しているものは削除
+            tripleFrame_Treport_sort = tripleFrame_Treport.ix[tripleFrame_Treport[u"報告書_id"] == Report_id,      #dataframe.ix[]--index、column両方を指定して検索ができる
+                                       :].sort_index(by=[u"文_id", u"動詞_id"])                                    #今回は報告書idがfor文の変数と同じものを指定している。
             for SV_id in Series(
-                    zip(tripleFrame_Treport_sort[u"文_id"], tripleFrame_Treport_sort[u"動詞_id"])).drop_duplicates():
+                    zip(tripleFrame_Treport_sort[u"文_id"], tripleFrame_Treport_sort[u"動詞_id"])).drop_duplicates():  #tripleFrame_Treport_sortの文idと動詞idを同時にfor文で回している
                 for index_perF, triple_perF in enumerate(tripleFrame_Treport_sort[
                                                                      (tripleFrame_Treport_sort[u"文_id"] == SV_id[0]) & (
                                                                  tripleFrame_Treport_sort[u"動詞_id"] == SV_id[1])].loc[:,
@@ -287,17 +304,18 @@ class Cases_extract:
                     Particle = triple_perF[1]
                     Verb = triple_perF[2]
                     if Noun != Noun:
+                        print Noun
                         continue
-                    print Report_id, SV_id[0], SV_id[1]
-                    Result = self.Dc.predict(Noun, Particle, Verb)
-                    DeepCase_unique = self.Dc.identify(Result)
+                    print Report_id, SV_id[0], SV_id[1]     #Report_id--報告書id、SV_id[0]--文_id、SV_id[1]--動詞_id
+                    Result = self.Dc.predict(Noun, Particle, Verb)  #リスト型で、名詞や動詞とその情報が格納されたものとNNの出力値が入っている
+                    DeepCase_unique = self.Dc.identify(Result)  #DeepCase_unique--深層格のどれに当たるのかをNNの値から求めている
                     # print Noun, Particle, Verb, DeepCase_unique
 
                     DeepCase_Noun_perV[self.Dc.DeepCaseList.index(DeepCase_unique)].append(Noun)
-
+                    print index_perF
                     if index_perF == len(tripleFrame_Treport_sort[(tripleFrame_Treport_sort[u"文_id"] == SV_id[0]) & (
                         tripleFrame_Treport_sort[u"動詞_id"] == SV_id[1])]) - 1:
-                        while [] in DeepCase_Noun_perV:
+                        while [] in DeepCase_Noun_perV: #初期化かな？
                             DeepCase_Noun_perV[DeepCase_Noun_perV.index([])] = [u" "]
 
                         for DeepCase_Noun_tmp in list(
@@ -309,22 +327,25 @@ class Cases_extract:
                             for Di in range(len(self.Dc.DeepCaseList)):
                                 DeepCase_Noun[Di].append(DeepCase_Noun_tmp[Di])
 
-                            DeepCase_Noun_perV = [[] for i in range(len(self.Dc.DeepCaseList))]
+                            DeepCase_Noun_perV = [[] for i in range(len(self.Dc.DeepCaseList))] #初期化？
 
         cf_list = [
             (u"報告書_id", [i[0] for i in Verb_target_id]), (u"文_id", [i[1] for i in Verb_target_id]),
             (u"動詞_id", [i[2] for i in Verb_target_id]), (u"動詞", Verb_target)
-        ]
-        cf_list.extend([(self.Dc.DeepCaseList[i], DeepCase_Noun[i]) for i in range(len(self.Dc.DeepCaseList))])
+        ]       #報告書id、文id、動詞id、動詞のすべてを入れている
+
+        cf_list.extend([(self.Dc.DeepCaseList[i], DeepCase_Noun[i]) for i in range(len(self.Dc.DeepCaseList))])     #cf_listの拡張
         # cf_list.extend([(Dc.dummylist[2].columns[i], SurfaceCase_Noun[i]) for i in range(len(Dc.dummylist[2].columns))])
 
-        case_frame = dict(cf_list)
+        case_frame = dict(cf_list)      #cf_listを辞書型に
 
         cd_columns = [u"報告書_id", u"文_id", u"動詞_id", u"動詞"]
-        cd_columns.extend([self.Dc.DeepCaseList[i] for i in range(len(self.Dc.DeepCaseList))])
+        cd_columns.extend([self.Dc.DeepCaseList[i] for i in range(len(self.Dc.DeepCaseList))])  #深層格の種類も入れている
+        #cd_columns--[u'報告書_id', u'文_id', u'動詞_id', u'動詞', u'主体', u'起点', u'対象', u'状況', u'着点', u'手段', u'関係']
+
         # cd_columns.extend([Dc.dummylist[2].columns[i] for i in range(len(Dc.dummylist[2].columns))])
 
-        case_df = DataFrame(case_frame, columns=cd_columns)
+        case_df = DataFrame(case_frame, columns=cd_columns)     #上二つで作ったものを一つにまとめようとしている
         case_df[u"事象"] = case_df[u"主体"] + " " + case_df[u"起点"] + " " + case_df[u"対象"] + " " + case_df[u"状況"] + " " + \
                          case_df[u"着点"] + " " + case_df[u"手段"] + " " + case_df[u"関係"] + " " + case_df[u"動詞"]
         for i in case_df.index:
@@ -532,61 +553,78 @@ class Cases_extract:
             case_df[u"事象"] = case_df[u"事象"].map(fnc)
             insecset = set(case_df[u"事象"]).intersection(set(unifyList.keys()))
         return case_df, Wdist
+
     #ゼロ代名詞が含まれると判断するニューラルネットワークの出力の閾値の算出
     def Cal_thresold(self, case_df, output_thresold):
         NNoutputList = []
         for Report_id in case_df[u"報告書_id"].drop_duplicates():
             print u"Calculating thresold:", Report_id
-            case_df_perR = case_df[case_df[u"報告書_id"] == Report_id]
-            for first_Sen, Sentence_id in enumerate(case_df_perR[u"文_id"].drop_duplicates()):
+            case_df_perR = case_df[case_df[u"報告書_id"] == Report_id]     #報告書idごとにそれぞれのidや深層格などを抜き出している
+
+            for first_Sen, Sentence_id in enumerate(case_df_perR[u"文_id"].drop_duplicates()):   #報告書idごとに出現している文idを抜き出している
                 for line in case_df_perR[case_df[u"文_id"] == Sentence_id].iterrows():
-                    for di, l in enumerate(line[1][4:11].values):
-                        if l != u" ":
-                            NNoutputList.append([i[1] for i in self.Dc.predict(l, u"", line[1][3])])
+                    """     lineこんな感じ
+                    報告書_id    108003794
+                    文_id              0
+                    動詞_id            12
+                    動詞              受ける
+                    主体                 
+                    起点                 
+                    対象            沈降の影響
+                    状況                 
+                    着点                 
+                    手段                 
+                    関係                 
+                    事象        沈降の影響 受ける
+                    Name: 0, dtype: object)
+                    """
+                    for di, l in enumerate(line[1][4:11].values):       #line内の動詞～事象のvaluesを指定している
+                        if l != u" ":       #深層格に何か入っていたら
+                            NNoutputList.append([i[1] for i in self.Dc.predict(l, u"", line[1][3])])    #line[1][3]--動詞、predict(深層格予測)に(名詞、u""、動詞)を送る
         maxList_perD = [[] for i in range(0, 7)]
         thresold_perD = [[] for i in range(0, 7)]
-        for perline in NNoutputList:
-            for out_perline in perline:
-                maxList_perD[out_perline.index(max(out_perline))].append(max(out_perline))
+        for perline in NNoutputList:    #NNoutputList(リスト型)から一つのリストを取り出す
+            for out_perline in perline: #そのリストから一文字目を取り出す
+                maxList_perD[out_perline.index(max(out_perline))].append(max(out_perline))      #出力値が最大の深層格の場所(index)に値(max(out_perline))を入れている
 
         while [] in maxList_perD:
             maxList_perD[maxList_perD.index([])] = [0.0]
-
         for i, mlp in enumerate(maxList_perD):
             thresold_perD[i] = np.percentile(np.array(mlp), output_thresold)
-            print i
-            print Series(mlp).describe()
         return maxList_perD, thresold_perD
+
     #因果連鎖分割（因果連鎖番号の割り当て）
     def Section_div(self, case_df, VC_Dc, thresold_perD):
 
         Record_id = dict()  # 文_id:レコード_id
-        Record_id[(case_df.ix[0, :][u"報告書_id"], case_df.ix[0, :][u"文_id"])] = 0
+        Record_id[(case_df.ix[0, :][u"報告書_id"], case_df.ix[0, :][u"文_id"])] = 0     #Record_idの初期化
         tail_key = -1
-        for Report_id in case_df[u"報告書_id"].drop_duplicates():
+        for Report_id in case_df[u"報告書_id"].drop_duplicates():      #Report_idに報告書idが入る
             print u"Extracting Sec_id:", Report_id
-            Noun_pre = dict()
+            Noun_pre = dict()       #Noun_preの初期化
             # print Report_id
-            case_df_perR = case_df[case_df[u"報告書_id"] == Report_id]
-            for first_Sen, Sentence_id in enumerate(case_df_perR[u"文_id"].drop_duplicates()):
+            case_df_perR = case_df[case_df[u"報告書_id"] == Report_id]     #case_df_perR--抜き出したReport_idと一致する報告書(case_df)のリストが入る
+            for first_Sen, Sentence_id in enumerate(case_df_perR[u"文_id"].drop_duplicates()):       #case_df_perRの文idが入る
 
-                for line in case_df_perR[case_df[u"文_id"] == Sentence_id].iterrows():
+                for line in case_df_perR[case_df[u"文_id"] == Sentence_id].iterrows():       #文idがcase_df_perRと一致するリストを抜き出してlineに入れる
                     # print line[1][1]
                     # print line[1][3]
-                    if line[1][1] not in Noun_pre.keys():
-                        Noun_pre[line[1][1]] = [l for l in line[1][4:11].values if l != u" "]
+                    if line[1][1] not in Noun_pre.keys():   #line[1][1]--多分文id、がNoun_preのkeyにないとき。最初はこの条件を満たして処理を行い、それ以降はelseの方に行くかな？
+                        Noun_pre[line[1][1]] = [l for l in line[1][4:11].values if l != u" "]   #深層格の中にある名詞が入る
                     else:
-                        Noun_pre[line[1][1]] = Noun_pre[line[1][1]] + [l for l in line[1][4:11].values if l != u" "]
+                        Noun_pre[line[1][1]] = Noun_pre[line[1][1]] + [l for l in line[1][4:11].values if l != u" "]    #既存のNoun_preに新たにlineの深層格内にある名詞のリストを追加する
                     # 代名詞の補完
-                    for di, l in enumerate(line[1][4:11].values):
-                        if l != u" ":
+                    for di, l in enumerate(line[1][4:11].values):       #line[1][4:11]--深層格に割り当てられている名詞が入る
+                        if l != u" ":   #深層格が割り当てられているとき
                             Lan = Language(l)
                             outList = Lan.getMorpheme()
-                            if set([u"代名詞"]).intersection(set([outList[i][2] for i in range(len(outList))])):
-                                # '''
+                            if set([u"代名詞"]).intersection(set([outList[i][2] for i in range(len(outList))])):   #set([a]).intersection(set([b]))--set[a]とset[b]の共通部分だけ出力、if文の中では共通のものがあればTure
+                                                                                                                    #mecabで処理を行い代名詞があるとわかった時の条件分岐
+
+                                # '''       ↓謎
                                 #代名詞の出力ベクトルと名詞の出力ベクトルのユークリッド距離が最小の名詞を選択
                                 pronoun_vec = [np.array(out_perD[1]) for out_perD in self.Dc.predict(l, u"", line[1][3]) if
-                                               np.argmax(np.array(out_perD[1])) == di]
+                                               np.argmax(np.array(out_perD[1])) == di]  #argmax([A])--[A]の中で最大値を持つインデックスを取得
                                 if len(pronoun_vec) == 0:
                                     pronoun_vec = [np.array(out_perD[1]) for out_perD in self.Dc.predict(l, u"", line[1][3])]
                                 Noun_out = [
@@ -625,9 +663,10 @@ class Cases_extract:
                                 case_df.ix[line[0], u"事象"] = case_df.ix[line[0], u"事象"].replace(l, toNoun)
                                 Noun_pre[line[1][1]][Noun_pre[line[1][1]].index(l)] = toNoun
                                 '''
+
                     # 埋まっていない深層格（ゼロ代名詞）の補完
                     Deep_cand = []
-                    for i in [VC_Dc[VC] for VC in self.Dc.NV_class[1][line[1][3]] if VC in VC_Dc]:
+                    for i in [VC_Dc[VC] for VC in self.Dc.NV_class[1][line[1][3]] if VC in VC_Dc]:  #VC_Dc--分類語彙表と動詞項構造シソーラスの共起頻度、NV_class--動詞か名詞のクラス、NV_class[1][line[1][3]]で動詞を取り出してVC_DcにあればVC_Dcにおけるそのリストをiに入れる
                         Deep_cand += i
                     Count_perD = [Deep_cand.count(d) for d in self.Dc.DeepCaseList]
                     Dc_toV = [Deep_cor for Deep_cor in

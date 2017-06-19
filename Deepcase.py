@@ -65,19 +65,19 @@ class Deepcase:
     def predict(self, Noun, Particle, Verb):
         #print Noun,Particle, Verb
         #print "Start time", datetime.datetime.now()
-        Wc = Word_class(self.NV_class)
+        Wc = Word_class(self.NV_class)      #NV_classを投げてオブジェクトを作る
         #NV = Wc.to_class(Noun.decode("shift-jis"), Verb.decode("shift-jis"))
-        NV = Wc.to_class(Noun, Verb)
-        X = self.getX(NV, Particle)
+        NV = Wc.to_class(Noun, Verb)    #名詞動詞についてのデータが返ってくる
+        X = self.getX(NV, Particle) #リストで1.0、0.0のNNに対する入力の値が返ってくる
         #inputlist =[]
         resultlist =[]
         for NVrecord ,Xrecord in zip(NV,X):
             #inputlist.append((NVrecord[0], NVrecord[1], Particle))
-            resultlist.append([(Noun, Verb, NVrecord[0], NVrecord[1], Particle),tuple(self.net.activate(Xrecord))])
+            resultlist.append([(Noun, Verb, NVrecord[0], NVrecord[1], Particle),tuple(self.net.activate(Xrecord))]) #net.activate()でNNの値を出してるっぽい
         return resultlist                    
         
     #ニューラルネットワークの入力の設定
-    def getX(self, NV, Particle):
+    def getX(self, NV, Particle):   #投げられた名詞動詞のデータとdummylistのデータの差異で入力値を定めているっぽい
         X=[]
         for record in NV:
             Xrecord=[]

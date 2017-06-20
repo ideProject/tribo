@@ -107,8 +107,8 @@ if __name__ == "__main__":
     tripleFrame = DataFrame({u"報告書_id":Ridlist, u"文_id":Sidlist, u"動詞_id":Vidlist, u"名詞":Nounlist, u"助詞":Particlelist,
                              u"動詞":Verblist}, columns=[u"報告書_id", u"文_id", u"動詞_id", u"名詞", u"助詞", u"動詞"])
     #tripleFrame--triplelistのデータをカラム[報告書id、文id、動詞id、名詞、助詞、動詞]のDataFrameで格納している
-    print tripleFrame
-#    sys.exit()
+    #print tripleFrame
+    #sys.exit()
 
     '''    ↓Tripleを作る必要がないならコメントアウトしていい
     tripleFrame.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True) #tripleFrameを報告書id、文id、動詞idの順でソートしている
@@ -135,6 +135,8 @@ if __name__ == "__main__":
     #'''
     #格フレームの構築
     print "格フレームの構築"
+
+    '''
     tripleFrame_Treport = pd.read_csv(path_List["Triple_Treport"], encoding='shift-jis')    #上で作ったTriple_Treport.csvを開く
     case_df = Ce.create_caseframe(tripleFrame_Treport)  #case_df--名詞とか動詞とかidがあってそれごとにどの深層格が割り当てられているかが格納されている
     case_df.to_csv(path_List["caseframe"], encoding='shift-jis', index=False)   #csvに出力
@@ -173,9 +175,10 @@ if __name__ == "__main__":
     #設備クラスタ（学部研究で分類した似た特徴を持つ設備）が含まれる報告書の抽出
     print "設備クラスタ（学部研究で分類した似た特徴を持つ設備）が含まれる報告書の抽出"
 
-    '''     ↓case_df_Tclusterを作る必要がないならコメントアウトしていい
+
     EXL = pd.ExcelFile(path_List["Tcluster"][0])  # xlsxファイルをPython上で開く
     Tcluster = EXL.parse(path_List["Tcluster"][1])
+    '''↓case_df_Tclusterを作る必要がないならコメントアウトしていい
     case_df_Tcluster = case_df.ix[case_df[u"報告書_id"].map(lambda x: x in list(Tcluster[u"分析NO"].drop_duplicates())), :]
     case_df_Tcluster.to_csv(path_List["caseframe_Tcluster"], encoding='shift-jis', index=False)
     '''
@@ -206,15 +209,18 @@ if __name__ == "__main__":
 
     #省略語の補完と因果連鎖分割
     print "省略語の補完と因果連鎖分割"
-    '''
+    #'''
     file = open(path_List["VC_Dc"])     #分類語彙表と動詞項構造シソーラスの共起頻度
     VC_Dc = pickle.load(file)
     file.close()
     output_thresold = 80        #threshold--閾値
-    maxList_perD, thresold_perD = Ce.Cal_thresold(case_df_Tcluster, output_thresold)    #よくわかんないのが返ってくる
+    # maxList_perD, thresold_perD = Ce.Cal_thresold(case_df_Tcluster, output_thresold)    #よくわかんないのが返ってくる
     #thresold_perD--[0.0, 0.38362727590488921, 0.96058661521839106, 0.78590685202242261, 0.92009078381800025, 0.57364750300015199, 0.92492675082770992] 各深層格の確率的なもの？
-    case_df_Tcluster_sec = Ce.Section_div(case_df_Tcluster, VC_Dc, thresold_perD)   #Section_div--いったん保留
-    case_df_Tcluster_sec.to_csv(path_List["caseframe_sec"], encoding='shift-jis', index=False)      #case_df_Tcluster_secをcsvに出力
+    thresold_perD = [0.0, 0.38362727590488921, 0.96058661521839106, 0.78590685202242261, 0.92009078381800025, 0.57364750300015199, 0.92492675082770992] #Ce.Cal_thresold時間かかるからこっちをいったん使う
+
+    case_df_Tcluster_sec = Ce.Section_div(case_df_Tcluster, VC_Dc, thresold_perD)   #case_df_Tcluster--設備クラスタに含まれるデータにおける格フレーム、VC_Dc--分類語彙表と動詞項構造シソーラスの共起頻度、thresold_perD--閾値
+    #case_df_Tcluster_sec.to_csv(path_List["caseframe_sec"], encoding='shift-jis', index=False)      #case_df_Tcluster_secをcsvに出力
+    sys.exit()
     #'''
 
     #事象間の類似度算出
@@ -239,16 +245,20 @@ if __name__ == "__main__":
     #'''
     # 確認データ数
     print "確認データ数"
-    N = 1000
+    #N = 1000
+    N = 3   #動作確認用
     ExNlist = random.sample(case_df_Tcluster_sec[u"報告書_id"].drop_duplicates(), N)       #報告書のidをN個分ランダムでリストにぶち込んでいる
     case_df_Tcluster_sec = case_df_Tcluster_sec.ix[case_df_Tcluster_sec[u"報告書_id"].map(lambda x: x in ExNlist), :]  #case_df_Tcluster_secにランダムで選んだN個の情報のみを保持させる
     #'''
 
-    case_df_unified, Wdist = Ce.bunrui_frame(case_df_Tcluster_sec, terms, idf_Treport, dist_method, threshould_dist)    #bunrui_frame--類似度の高い各フレームの統合、bunrui_frame(対象の奴、抽出した単語リスト、距離の測り方(jaccard,simpson)、閾値)、
-    Wdist.sort_values(by=u"Similarity", ascending=False).to_csv(path_List["Wdist"], encoding='shift-jis')
+    case_df_unified, Wdist = Ce.bunrui_frame(case_df_Tcluster_sec, terms, idf_Treport, dist_method, threshould_dist)    #bunrui_frame--類似度の高い各フレームの統合、bunrui_frame(対象の奴、抽出した単語リスト、単語ごとのidf（重み）のリスト、類似度計算の手法、閾値)、
+    #idf--一種の一般語フィルタとして働き、多くの文書に出現する語は重要度が下がり、特定の文書にしか出現しない単語の重要度を上げる役割を果たす
+    Wdist.sort_values(by=u"Similarity", ascending=False).to_csv(path_List["Wdist"], encoding='shift-jis')   #WdistのSimilarityを降順にソートしている
 
-    Wdist = pd.read_csv(path_List["Wdist"], encoding='shift-jis')
+    Wdist = pd.read_csv(path_List["Wdist"], encoding='shift-jis')   #Wdistを出力している
 
+
+    #↓動かない
     #設備クラスタごとに事象の出現の有無(0, 1)行列の作成
     print "設備クラスタごとに事象の出現の有無(0, 1)行列の作成"
     for cluster in Tcluster[u"$T1-TwoStep"].drop_duplicates():

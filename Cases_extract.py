@@ -408,22 +408,25 @@ class Cases_extract:
     def bunrui_frame(self, case_df, terms, idf_Treport, dist_method, threshould_dist):
         MorList = []
         Noun_comp = u""
-        Noun_weight = 2.0
-        idf_Treport = Series(idf_Treport)
+        Noun_weight = 2.0       #重み
+        idf_Treport = Series(idf_Treport)       #idf_Treport--リスト型だからSeries(idf_Treport)にすることでデータを扱いやすい形に変えている
         zero = min(idf_Treport)
         if zero==0:
             min_idf=1.0
-            for idf in idf_Treport:
-                if idf<min_idf and idf!=zero:
+            for idf in idf_Treport: #各単語ごとのidfを抜き出している
+                if idf<min_idf and idf!=zero:   #idfの最小値を保持する
                     min_idf=idf
-            idf_Treport[idf_Treport == 0] = min_idf*0.5
+            idf_Treport[idf_Treport == 0] = min_idf*0.5     #idf_Treport[]の値が0のものをmin_idf*0.5に書き換えている
 
 
-        for frame in case_df[u"事象"].drop_duplicates().values:
+        #ここの処理で事象の単語を重みとidfを用いてそれぞれの単語に値を与えている
+        for frame in case_df[u"事象"].drop_duplicates().values:   #frameにcase_dfの事象に当たる個所のvaluesを入れている
+            # print "frame",frame #事象が入る
             MorList_tmp = {}
-            for i, words in enumerate(frame.split(u" ")):
+            for i, words in enumerate(frame.split(u" ")):   #frameにある単語一つずつがwordsに入る
                 #print words, u":"
-                if i==len(frame.split(u" "))-1:
+                # print "words",words #事象の各単語が入る
+                if i==len(frame.split(u" "))-1:     #もしframe内の最後の単語をwordsが取得した時
                     if words[-2:] != u"する":
                         MorList_tmp[words] = idf_Treport[terms.index(words)]
                     else:
@@ -431,31 +434,38 @@ class Cases_extract:
                     #エラー回避用xm
                     Noun_comp = u""
                 else:
-                    Lan = Language(words)
-                    outList = Lan.getMorpheme()
-                    Mor_1 = [outList[i][1] for i in range(len(outList))]
-                    for mi, Mor in enumerate(outList):
-                        if Mor_1[mi] == u"名詞" and Mor[2] != u"形容動詞語幹":
-                            Noun_comp += Mor[0]
-                            if mi < len(Mor_1) - 1:
-                                if Mor_1[mi + 1] != u"名詞":
-                                    #print Noun_comp,
-                                    MorList_tmp[Noun_comp] = idf_Treport[terms.index(Noun_comp)] * Noun_weight
+                    Lan = Language(words)       #Languageにwordsを投げる
+                    outList = Lan.getMorpheme()     #mecabの処理を返してくれる(ここではwordsをmecabで解析した結果が返ってくる)
+                    Mor_1 = [outList[i][1] for i in range(len(outList))]    #outList内の品詞をMor_1に取り出している
+
+                    for mi, Mor in enumerate(outList):  #wordsの品詞ごとにMorに入る
+                        # print "Mor",Mor #単語をmecabに投げた時の結果の各品詞が入る
+                        # print "Mor_1",Mor_1
+                        # print "MorList_tmp",MorList_tmp
+                        if Mor_1[mi] == u"名詞" and Mor[2] != u"形容動詞語幹":  #Mor_1[mi]が名詞で且つ形容動詞語幹でないとき
+                            Noun_comp += Mor[0] #Noun_compにその語を入れる
+                            if mi < len(Mor_1) - 1: #もしMor_1のサイズ-1よりも小さなループの時
+                                if Mor_1[mi + 1] != u"名詞":  #もしMor_1[mi + 1]が名詞でないとき
+                                    #ここの上二つの条件によって例えば『フィルタ表面』など複合的な名詞も分かれて保持するのではなく同じ名詞として扱うことができる
+                                    MorList_tmp[Noun_comp] = idf_Treport[terms.index(Noun_comp)] * Noun_weight  #MorList_tmpにNoun_compというkeyの辞書項目を作り、そのvaluesに抽出した単語リストの番号にあたるidf_Treportのidfに重みをかけた値を入れる
                                     Noun_comp = u""
 
-                            else:
-                                #print Noun_comp
+                            else:   #Mor_1の最後を参照した時
                                 MorList_tmp[Noun_comp] = idf_Treport[terms.index(Noun_comp)] * Noun_weight
                                 Noun_comp = u""
-                        elif Mor_1[mi] != u"助詞" and Mor_1[mi] != u"助動詞" and Mor[5] != u"サ変・スル" and Mor[2] != u"接尾":
+                        elif Mor_1[mi] != u"助詞" and Mor_1[mi] != u"助動詞" and Mor[5] != u"サ変・スル" and Mor[2] != u"接尾": #Mor_1[mi]が助詞且つ助動詞且つサ変・スル且つ接尾でないとき
                             #print Mor[0]
+                            # print "Mor_1[mi]",Mor_1[mi]
                             MorList_tmp[Mor[0]] = idf_Treport[terms.index(Mor[0])]
 
-            MorList.append(MorList_tmp)
+            MorList.append(MorList_tmp) #事象ごとにMorList_tmp（単語ごとに重みによって与えた値を入れている）をappendしている
+        print "MorList",MorList #MorList--うえで処理した事象ごとに辞書が設けられ、その辞書内では各単語ごとに重みとidfによって与えられた値が保持されている
+
 
         #caseFrame = case_df[u"主体"] + u" " + case_df[u"起点"] + u" " + case_df[u"対象"] + u" " + case_df[u"状況"] + u" " + case_df[
          #   u"着点"] + u" " + case_df[u"手段"] + u" " + case_df[u"関係"] + u" " + case_df[u"動詞"]
-        cf = [i for i in case_df[u"事象"].drop_duplicates()]
+        cf = [i for i in case_df[u"事象"].drop_duplicates()]      #cfにはただcase_df内の事象が重複せずに入っている
+
 
         #Jaccard係数による統一辞書の作成
         Wdist_index = []
@@ -467,23 +477,26 @@ class Cases_extract:
         oppositeList = [u"良好", u"正常", u"低下"]
 
         print len(cf), len(MorList)
-        for i, x in enumerate(MorList):
+        for i, x in enumerate(MorList): #i--enumerateのインクリメント、x--MorListの各単語に対する値の辞書型が入る
             print u"calculating distance... ", i
-            x_keys_set = set(x.keys())
-            for j, y in enumerate(MorList[i + 1:]):
+            x_keys_set = set(x.keys())  #xの単語のほうが入る
+            for j, y in enumerate(MorList[i + 1:]): #j--enumerateのインクリメント、y--MorListの最初の事象の次の事象をyに入れている
+                #xの次以降の事象がyということになる。
                 j = i + j + 1
-                y_keys_set = set(y.keys())
+                y_keys_set = set(y.keys())  #yの単語のほうが入る
                 # print j
-                if bool(set(oppositeList).intersection(x_keys_set)) and not(bool(y_keys_set.issuperset(set(oppositeList).intersection(x_keys_set)))):
+                if bool(set(oppositeList).intersection(x_keys_set)) and not(bool(y_keys_set.issuperset(set(oppositeList).intersection(x_keys_set)))):   #oppositeList(反対語リスト)とx_keys_setが一致する、またoppositeListとx_keys_setが一致している単語それ以上の値を示していないとき.s.issuperset(t)--s >= t
                     continue
-                elif bool(set(oppositeList).intersection(y_keys_set)) and not(bool(x_keys_set.issuperset(set(oppositeList).intersection(y_keys_set)))):
+                elif bool(set(oppositeList).intersection(y_keys_set)) and not(bool(x_keys_set.issuperset(set(oppositeList).intersection(y_keys_set)))): #oppositeList(反対語リスト)とy_keys_setが一致する、またoppositeListとy_keys_setが一致している単語それ以上の値を示していないとき.s.issuperset(t)--s >= t
                     continue
 
-                if (x.keys() in unifyList.keys()) | (y.keys() in unifyList.keys()):
+                if (x.keys() in unifyList.keys()) | (y.keys() in unifyList.keys()): #y.keysもしくはx.keysがunifyList.keysに含まれているとき
                     continue
-                if bool(x_keys_set.intersection(y_keys_set)) and cf[i] != cf[j]:
 
-                    sym = x_keys_set.symmetric_difference(y_keys_set)
+                if bool(x_keys_set.intersection(y_keys_set)) and cf[i] != cf[j]:    #x_keys_setとy_keys_setで一致するものがあるとき且つ、i番目とj番目の事象が一致しないとき
+
+                    sym = x_keys_set.symmetric_difference(y_keys_set)   #s.symmetric_difference(t)--s^t(sとtのどちらか一方だけに属する要素からなる集合),この場合x_keys_setとy_keys_setのどちらか一方だけに属しているものの集合が格納されている
+                    print "sym",sym,len(sym)
                     if len(sym)>3:
                         continue
                     #排他的論理和形態素に名詞が（２つ以上）含まれていてはいけない(時間かかる)
@@ -496,9 +509,10 @@ class Cases_extract:
 
                     if [ms[0] for ms in Mor_sd].count(u"名詞")<2:
                     '''
-                    xy_set = dict(x.items() + y.items())
-                    xy_insec = x_keys_set.intersection(y_keys_set)
-                    w_all = 0.00
+                    xy_set = dict(x.items() + y.items())    #xとyのkeys,valuesすべてを辞書型で入れている。itemsを使うと(keys,values)のタプル型が取得できる
+                    xy_insec = x_keys_set.intersection(y_keys_set)  #x_keys_setとy_keys_setで同じ値があるもの
+                    w_all = 0.00    #これが類似度の値？
+                    #↓ここで引数で指定した類似度の求め方を実行している
                     if dist_method == u"Jaccard":
                         #jaccard係数
                         for mor_val in xy_set.values():
@@ -512,12 +526,13 @@ class Cases_extract:
                             for mor_val in y.values():
                                 w_all += mor_val
 
-
                     w_insec = 0.00
-                    for mor_val in xy_insec:
-                        w_insec += xy_set[mor_val]
-                    dist_str = w_insec / w_all
-                    if dist_str >= threshould_dist:
+                    for mor_val in xy_insec:    #xy_insec--x_keys_set,y_keys_setで同じ値があるものの集合、mor_valはそれを一つずつ受け取る
+                        print "xy_set[mor_val]",xy_set[mor_val]
+                        w_insec += xy_set[mor_val]  #w_insecでは上で求めた値が加算されていく
+                    dist_str = w_insec / w_all  #上で求めたものの比を表している？
+
+                    if dist_str >= threshould_dist: #dist_strが閾値より高いとき
                         '''
                         if dist_method==u"Jaccard":
                             #頻度が高い格フレームに統一
@@ -543,16 +558,20 @@ class Cases_extract:
                         Wdist_column.append(cf[j])
                         Wdist.append(dist_str)
 
-        Wdist = DataFrame(Wdist, index=[Wdist_index, Wdist_column], columns=[u"Similarity"])
-
+        print "Wdist",Wdist
+        Wdist = DataFrame(Wdist, index=[Wdist_index, Wdist_column], columns=[u"Similarity"])    #統一し終わったものをDataFrame型に変換
+        print "Wdist",Wdist     #DataFrame型にWdistを変えている。中身としては、事象A  事象B　Similarityって感じ
+        print "unifyList",unifyList #統一が発生した時、条件に応じて　事象A:事象B　って感じで辞書型に格納される
+        print "Wdist_index",Wdist_index #Wdistの左側の事象
+        print "Wdist_column",Wdist_column   #Wdistの右側の事象
         fnc = lambda x: unifyList.get(x, x)
         insecset = set()
-        while set(case_df[u"事象"]).intersection(set(unifyList.keys())):
-            if insecset== set(case_df[u"事象"]).intersection(set(unifyList.keys())):
+        while set(case_df[u"事象"]).intersection(set(unifyList.keys())):  #case_df[u"事象"]とunifyList.keys()が一致するとき
+            if insecset== set(case_df[u"事象"]).intersection(set(unifyList.keys())):  #この条件だと絶対１週しかしなさそうだし違う条件分岐でもよくない？って思った。ただ最初からbreakすることもあるのかもしれないので何とも言えない
                 break
-            case_df[u"事象"] = case_df[u"事象"].map(fnc)
+            case_df[u"事象"] = case_df[u"事象"].map(fnc)    #unifyListに該当するものがあったら補完しているのかも？よくわからない
             insecset = set(case_df[u"事象"]).intersection(set(unifyList.keys()))
-        return case_df, Wdist
+        return case_df, Wdist   #事象を重複せずにまとめてunifyListを噛ませたcase_dfと事象間のSimilarityを求めてあるWdistが返される
 
     #ゼロ代名詞が含まれると判断するニューラルネットワークの出力の閾値の算出
     def Cal_thresold(self, case_df, output_thresold):
@@ -594,48 +613,50 @@ class Cases_extract:
         return maxList_perD, thresold_perD
 
     #因果連鎖分割（因果連鎖番号の割り当て）
-    def Section_div(self, case_df, VC_Dc, thresold_perD):
+    def Section_div(self, case_df, VC_Dc, thresold_perD):   #case_df--設備クラスタ、VC_Dc--共起頻度、thresold_preD--閾値
 
         Record_id = dict()  # 文_id:レコード_id
         Record_id[(case_df.ix[0, :][u"報告書_id"], case_df.ix[0, :][u"文_id"])] = 0     #Record_idの初期化
         tail_key = -1
         for Report_id in case_df[u"報告書_id"].drop_duplicates():      #Report_idに報告書idが入る
-            print u"Extracting Sec_id:", Report_id
+            print u"Extracting SecN_id:", Report_id
             Noun_pre = dict()       #Noun_preの初期化
             # print Report_id
-            case_df_perR = case_df[case_df[u"報告書_id"] == Report_id]     #case_df_perR--抜き出したReport_idと一致する報告書(case_df)のリストが入る
+            case_df_perR = case_df[case_df[u"報告書_id"] == Report_id]     #case_df_perR--抜き出したReport_idと一致する報告書(case_df)のリストが入る、データとしては報告書id、文id、動詞id、動詞、深層格が入る
             for first_Sen, Sentence_id in enumerate(case_df_perR[u"文_id"].drop_duplicates()):       #case_df_perRの文idが入る
+                print "first_Sen",first_Sen
+                for line in case_df_perR[case_df[u"文_id"] == Sentence_id].iterrows():       #文idがcase_df_perRと一致するリストを抜き出してlineに入れる。lineは各事象ごとの動詞や深層格の情報が入っている。
+                    # print "line[1][1]",line[1][1]   #文id
+                    # print "Noun_pre",Noun_pre   #{0L: [u'沈降の影響', u'濃度'], 2L: [u'μm以下の疲労摩耗粒子', u'軸受の寿命の指標'], 4L: [u'リン', u'使用油である日石タービン']}って感じで入る。0Lとかの0は文id、各文ごとの名詞が文idと共に辞書型として格納されている
 
-                for line in case_df_perR[case_df[u"文_id"] == Sentence_id].iterrows():       #文idがcase_df_perRと一致するリストを抜き出してlineに入れる
-                    # print line[1][1]
                     # print line[1][3]
-                    if line[1][1] not in Noun_pre.keys():   #line[1][1]--多分文id、がNoun_preのkeyにないとき。最初はこの条件を満たして処理を行い、それ以降はelseの方に行くかな？
+                    if line[1][1] not in Noun_pre.keys():   #line[1][1]--文id、がNoun_preのkeyにないとき。最初はこの条件を満たして処理を行い、それ以降はelseの方に行くかな？
                         Noun_pre[line[1][1]] = [l for l in line[1][4:11].values if l != u" "]   #深層格の中にある名詞が入る
                     else:
                         Noun_pre[line[1][1]] = Noun_pre[line[1][1]] + [l for l in line[1][4:11].values if l != u" "]    #既存のNoun_preに新たにlineの深層格内にある名詞のリストを追加する
                     # 代名詞の補完
-                    for di, l in enumerate(line[1][4:11].values):       #line[1][4:11]--深層格に割り当てられている名詞が入る
+                    for di, l in enumerate(line[1][4:11].values):       #line[1][4:11]--深層格に割り当てられている名詞がlに入る    例）l = "沈降の影響"
+                        print "di",di
                         if l != u" ":   #深層格が割り当てられているとき
-                            Lan = Language(l)
-                            outList = Lan.getMorpheme()
+                            Lan = Language(l)   #深層格が割り当てられている名詞lをLanguageに投げる
+                            outList = Lan.getMorpheme() #上で投げた名詞のmecabによる解析結果をoutListに入れる
                             if set([u"代名詞"]).intersection(set([outList[i][2] for i in range(len(outList))])):   #set([a]).intersection(set([b]))--set[a]とset[b]の共通部分だけ出力、if文の中では共通のものがあればTure
-                                                                                                                    #mecabで処理を行い代名詞があるとわかった時の条件分岐
-
+                                                                                                                    #mecabで処理を行い代名詞があるとわかった時の条件分岐.代名詞を含んだひとまとまりの事象の時も入る
                                 # '''       ↓謎
                                 #代名詞の出力ベクトルと名詞の出力ベクトルのユークリッド距離が最小の名詞を選択
-                                pronoun_vec = [np.array(out_perD[1]) for out_perD in self.Dc.predict(l, u"", line[1][3]) if
-                                               np.argmax(np.array(out_perD[1])) == di]  #argmax([A])--[A]の中で最大値を持つインデックスを取得
-                                if len(pronoun_vec) == 0:
+                                pronoun_vec = [np.array(out_perD[1]) for out_perD in self.Dc.predict(l, u"", line[1][3]) if #Dc.predict(名詞、助詞、動詞)だからline[1][3]は動詞
+                                               np.argmax(np.array(out_perD[1])) == di]  #argmax([A])--[A]の中で最大値を持つインデックスを取得、たぶんifの条件は深層格に複数名詞が割り当てられているときにほしいデータの結果のみを得ようとしている
+                                if len(pronoun_vec) == 0:   #pronoun_vecに何も入っていないとき
                                     pronoun_vec = [np.array(out_perD[1]) for out_perD in self.Dc.predict(l, u"", line[1][3])]
+                                print "pronoun_vec", pronoun_vec  # pronoun_vec--例）[array([ 0.00528617, -0.00143269,  0.81343152,  0.02207774,  0.12166978,0.01644565,  0.02252184])]って感じ。各深層格に対する帰属度が格納される？
                                 Noun_out = [
                                     {Np: [np.array(output[1]) for output in self.Dc.predict(Np, u"", line[1][3])] for Np in
                                      Np_list if Np not in line[1][4:11].values} for Np_list in
                                     [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
                                      line[1][1] - pre_i in Noun_pre.keys()]]
-
-                                if len(Noun_out[0]) == 0:
+                                if len(Noun_out[0]) == 0:   #何も入ってなかったら消す
                                     del Noun_out[0]
-                                if len(Noun_out) == 0:
+                                if len(Noun_out) == 0:  #Noun_outにまだ事象がないならbreak
                                     break
 
                                 Neuclid_perS = [
@@ -645,8 +666,13 @@ class Cases_extract:
                                 toNoun = [N_ed[0] for N_ed in Neuclid_min_perS if
                                           min([nmp[1] for nmp in Neuclid_min_perS]) == N_ed[1]]
                                 case_df.ix[line[0], u"事象"] = case_df.ix[line[0], u"事象"].replace(l, toNoun[0])
-                                Noun_pre[line[1][1]][Noun_pre[line[1][1]].index(l)] = toNoun[0]
-                                # '''
+                                print "toNoun[0]",toNoun[0] #ユークリッド距離が一番小さな名詞、代名詞を置き換える用
+                                print "before:Noun_pre",Noun_pre
+                                Noun_pre[line[1][1]][Noun_pre[line[1][1]].index(l)] = toNoun[0]     #ここで"これ"とかの代名詞をtoNoun[0]で補完している
+                                # print "Neuclid_perS",Neuclid_perS   #報告書ごとに深層格に割り当てられた名詞のユークリッド距離を求めている   ユークリッド距離が一番短いものが代名詞補完に使われて要るっぽい
+                                # print "Neuclid_min_perS", Neuclid_min_perS  #求められたユークリッド距離から最小なものを抽出している
+                                print "after:Noun_pre", Noun_pre
+                            # '''
 
                                 '''
                                 #深層格における最大出力である名詞を選択
@@ -667,17 +693,20 @@ class Cases_extract:
                     # 埋まっていない深層格（ゼロ代名詞）の補完
                     Deep_cand = []
                     for i in [VC_Dc[VC] for VC in self.Dc.NV_class[1][line[1][3]] if VC in VC_Dc]:  #VC_Dc--分類語彙表と動詞項構造シソーラスの共起頻度、NV_class--動詞か名詞のクラス、NV_class[1][line[1][3]]で動詞を取り出してVC_DcにあればVC_Dcにおけるそのリストをiに入れる
-                        Deep_cand += i
-                    Count_perD = [Deep_cand.count(d) for d in self.Dc.DeepCaseList]
+                        Deep_cand += i      #[u'対象', u'関係', u'対象', u'着点']こんな感じで動詞の深層格が入る
+                    # print "Deep_cand",Deep_cand
+                    Count_perD = [Deep_cand.count(d) for d in self.Dc.DeepCaseList]     #self.Dc.DeepCaseList--[u'主体', u'起点', u'対象', u'状況', u'着点', u'手段', u'関係']
+                    # print "Count_perD",Count_perD   #Deep_candに含まれる深層格が[u'主体', u'起点', u'対象', u'状況', u'着点', u'手段', u'関係']の形でいくつ現れているのかをカウントしている。例）[0, 0, 2, 0, 1, 0, 1]
                     Dc_toV = [Deep_cor for Deep_cor in
                               [d for d, Deep_cor in zip(self.Dc.DeepCaseList, Count_perD) if
                                sum(Count_perD) / float(len(Count_perD)) < Deep_cor]]
-
+                    print "Dc_toV",Dc_toV   #Dc_toV [u'対象', u'着点', u'関係']こんな感じ  もしかしたらここで出てくる奴はゼロ代名詞があると判断された深層格が出てるのかも
+                    print "line",line
                     Noun_zero = dict()
                     for Dc_tmp in Dc_toV:
-                        if line[1][Dc_tmp] == u" ":
+                        if line[1][Dc_tmp] == u" ":     #Dc_toVで出た深層格が埋まっていないとき
                             Noun_out = [{Np: max([output[1][self.Dc.DeepCaseList.index(Dc_tmp)] for output in self.Dc.predict(Np, u"", line[1][3])]) for Np in Np_list if Np not in line[1][4:11].values} for Np_list in [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
-                                                    line[1][1] - pre_i in Noun_pre.keys()]]
+                                                    line[1][1] - pre_i in Noun_pre.keys()]] #Noun_out--入る可能性がある名詞とその帰属度が辞書型で格納されている。
                             while {} in Noun_out:
                                 Noun_out.remove({})
                             if len(Noun_out) == 0:

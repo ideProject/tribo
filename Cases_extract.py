@@ -614,17 +614,20 @@ class Cases_extract:
 
     #因果連鎖分割（因果連鎖番号の割り当て）
     def Section_div(self, case_df, VC_Dc, thresold_perD):   #case_df--設備クラスタ、VC_Dc--共起頻度、thresold_preD--閾値
-
         Record_id = dict()  # 文_id:レコード_id
         Record_id[(case_df.ix[0, :][u"報告書_id"], case_df.ix[0, :][u"文_id"])] = 0     #Record_idの初期化
         tail_key = -1
+        before_list = []
+        after_list = []
+        Report_id_list = []
+        Sentence_id_list = []
         for Report_id in case_df[u"報告書_id"].drop_duplicates():      #Report_idに報告書idが入る
             print u"Extracting SecN_id:", Report_id
-            Noun_pre = dict()       #Noun_preの初期化
+            Noun_pre = dict()       #Noun_preの初期化、報告書ごとの名詞の一覧
             # print Report_id
             case_df_perR = case_df[case_df[u"報告書_id"] == Report_id]     #case_df_perR--抜き出したReport_idと一致する報告書(case_df)のリストが入る、データとしては報告書id、文id、動詞id、動詞、深層格が入る
             for first_Sen, Sentence_id in enumerate(case_df_perR[u"文_id"].drop_duplicates()):       #case_df_perRの文idが入る
-                print "first_Sen",first_Sen
+                # print "first_Sen",first_Sen
                 for line in case_df_perR[case_df[u"文_id"] == Sentence_id].iterrows():       #文idがcase_df_perRと一致するリストを抜き出してlineに入れる。lineは各事象ごとの動詞や深層格の情報が入っている。
                     # print "line[1][1]",line[1][1]   #文id
                     # print "Noun_pre",Noun_pre   #{0L: [u'沈降の影響', u'濃度'], 2L: [u'μm以下の疲労摩耗粒子', u'軸受の寿命の指標'], 4L: [u'リン', u'使用油である日石タービン']}って感じで入る。0Lとかの0は文id、各文ごとの名詞が文idと共に辞書型として格納されている
@@ -636,7 +639,7 @@ class Cases_extract:
                         Noun_pre[line[1][1]] = Noun_pre[line[1][1]] + [l for l in line[1][4:11].values if l != u" "]    #既存のNoun_preに新たにlineの深層格内にある名詞のリストを追加する
                     # 代名詞の補完
                     for di, l in enumerate(line[1][4:11].values):       #line[1][4:11]--深層格に割り当てられている名詞がlに入る    例）l = "沈降の影響"
-                        print "di",di
+                        # print "di",di
                         if l != u" ":   #深層格が割り当てられているとき
                             Lan = Language(l)   #深層格が割り当てられている名詞lをLanguageに投げる
                             outList = Lan.getMorpheme() #上で投げた名詞のmecabによる解析結果をoutListに入れる
@@ -666,7 +669,7 @@ class Cases_extract:
                                 toNoun = [N_ed[0] for N_ed in Neuclid_min_perS if
                                           min([nmp[1] for nmp in Neuclid_min_perS]) == N_ed[1]]
                                 case_df.ix[line[0], u"事象"] = case_df.ix[line[0], u"事象"].replace(l, toNoun[0])
-                                print "toNoun[0]",toNoun[0] #ユークリッド距離が一番小さな名詞、代名詞を置き換える用
+                                # print "toNoun[0]",toNoun[0] #ユークリッド距離が一番小さな名詞、代名詞を置き換える用
                                 print "before:Noun_pre",Noun_pre
                                 Noun_pre[line[1][1]][Noun_pre[line[1][1]].index(l)] = toNoun[0]     #ここで"これ"とかの代名詞をtoNoun[0]で補完している
                                 # print "Neuclid_perS",Neuclid_perS   #報告書ごとに深層格に割り当てられた名詞のユークリッド距離を求めている   ユークリッド距離が一番短いものが代名詞補完に使われて要るっぽい
@@ -700,59 +703,83 @@ class Cases_extract:
                     Dc_toV = [Deep_cor for Deep_cor in
                               [d for d, Deep_cor in zip(self.Dc.DeepCaseList, Count_perD) if
                                sum(Count_perD) / float(len(Count_perD)) < Deep_cor]]
-                    print "Dc_toV",Dc_toV   #Dc_toV [u'対象', u'着点', u'関係']こんな感じ  もしかしたらここで出てくる奴はゼロ代名詞があると判断された深層格が出てるのかも
-                    print "line",line
+                    # print "Dc_toV",Dc_toV   #Dc_toV [u'対象', u'着点', u'関係']こんな感じ  もしかしたらここで出てくる奴はゼロ代名詞があると判断された深層格が出てるのかも
+                    # print "line",line
                     Noun_zero = dict()
                     for Dc_tmp in Dc_toV:
                         if line[1][Dc_tmp] == u" ":     #Dc_toVで出た深層格が埋まっていないとき
                             Noun_out = [{Np: max([output[1][self.Dc.DeepCaseList.index(Dc_tmp)] for output in self.Dc.predict(Np, u"", line[1][3])]) for Np in Np_list if Np not in line[1][4:11].values} for Np_list in [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
                                                     line[1][1] - pre_i in Noun_pre.keys()]] #Noun_out--入る可能性がある名詞とその帰属度が辞書型で格納されている。
-                            while {} in Noun_out:
+                            while {} in Noun_out:   #Noun_outのいらない部分である{}を消して整理している
                                 Noun_out.remove({})
-                            if len(Noun_out) == 0:
+                            if len(Noun_out) == 0:  #整理した結果何もなかったらループやり直し
                                 continue
-                            MaxN_perS = [No[No.keys()[No.values().index(max(No.values()))]] for No in
+                            MaxN_perS = [No[No.keys()[No.values().index(max(No.values()))]] for No in   #NoにはNoun_out内にある名詞とその帰属度の辞書型が入る。
                                          Noun_out]
-                            SSen_rec = MaxN_perS.index(max(MaxN_perS))
-                            if max(MaxN_perS) > thresold_perD[self.Dc.DeepCaseList.index(Dc_tmp)]:
+                            SSen_rec = MaxN_perS.index(max(MaxN_perS))  #SSen_rec--MaxN_perSの中で一番大きな値を持っているインデックスを保持する
+                            if max(MaxN_perS) > thresold_perD[self.Dc.DeepCaseList.index(Dc_tmp)]:  #もしMaxN_perSがそれぞれの深層格ごとに求めた閾値thresold_perDよりも大きければ
                                 Noun_zero[Dc_tmp] = Noun_out[SSen_rec].keys()[Noun_out[SSen_rec].values().index(max(MaxN_perS))]
-                    if len(Noun_zero.keys()) > 0:
-                        case_zero = u""
-                        for d, Noun_perD in zip(line[1][4:11].keys(), line[1][4:11].values):
-                            if d in Noun_zero.keys():
-                                case_zero += u" " + Noun_zero[d]
+                                # print "Noun_zero[Dc_tmp]",Noun_zero[Dc_tmp]
+                    if len(Noun_zero.keys()) > 0:   #Noun_zero.keys()に何かが入っているとき
+                        case_zero = u"" #case_zeroを初期化
+                        for d, Noun_perD in zip(line[1][4:11].keys(), line[1][4:11].values):    #dに深層格、Noun_perDにその深層格に割り当てられている単語が入る
+                            if d in Noun_zero.keys():   #もしdがNoun_zero.keys()に含まれているとき、Noun_zeroにはkeysに深層格が、valuesにその格の名詞が含まれている
+                                case_zero += u" " + Noun_zero[d]    #case_zeroに名詞を加算
                             else:
-                                case_zero += u" " + Noun_perD
+                                case_zero += u" " + Noun_perD   #dの格にある名詞を加算
+
                         case_zero += u" " + line[1][3]
-                        case_zero = re.sub(r" +", u" ", case_zero.strip())
+                        case_zero = re.sub(r" +", u" ", case_zero.strip())      #ゼロ代名詞を補完した事象が入る
+
+                        #'''追加部分
+                        before_list.append(line[1][11])
+                        after_list.append(case_zero)
+                        Report_id_list.append(Report_id)
+                        Sentence_id_list.append(Sentence_id)
+                        #'''
 
                         case_df.ix[line[0], u"事象"] = case_zero
                         for Noun_zero_tmp in Noun_zero.values():
-                            Noun_pre[line[1][1]].append(Noun_zero_tmp)
+                            Noun_pre[line[1][1]].append(Noun_zero_tmp)  #ゼロ代名詞が加わったNoun_preになっている
 
                 # 前の文に含まれる名詞が含まれているか
-                if first_Sen == 0 and tail_key != -1:
+                if first_Sen == 0 and tail_key != -1:   #最初の文は前の文とかがないからこの条件に入ってcontinue
                     Record_id[(Report_id, Sentence_id)] = Record_id[tail_key] + 1
                     continue
-                for pre_i in range(3, 0, -1):
-                    if line[1][1] - pre_i in Noun_pre.keys():
-                        if set(Noun_pre[line[1][1]]).intersection(set(Noun_pre[line[1][1] - pre_i])):
+                for pre_i in range(3, 0, -1):   #range(start,stop,step)--今回の場合、3から-1ずつ変化して0になるまでってこと
+                    if line[1][1] - pre_i in Noun_pre.keys():   #line[1][1]は文id、つまり文id-pre_i（３～０）の範囲にNoun_pre.keys()、ゼロ代名詞を補完した名詞が含まれているとき。先行研究ではrange(3.0.-1)と3文前までに名詞が含まれているのかを見ている？
+                        if set(Noun_pre[line[1][1]]).intersection(set(Noun_pre[line[1][1] - pre_i])):   #前の文章に同じ名詞が出ているなら
                             for pre_j in range(pre_i, -1, -1):
-                                if line[1][1] - pre_j in Noun_pre.keys():
+                                if line[1][1] - pre_j in Noun_pre.keys():   #報告書の名詞リストの中にあったら
                                     Record_id[(Report_id, Sentence_id - pre_j)] = Record_id[
-                                        (Report_id, line[1][1] - pre_i)]
+                                        (Report_id, line[1][1] - pre_i)]        #Record_idは報告書id,文idがどこにかかっているのかを表している?因果連鎖っぽいかも？
+
                             break
                         else:
-                            Record_id[(Report_id, Sentence_id)] = Record_id[(Report_id, line[1][1] - pre_i)] + 1
-                while (Report_id, Sentence_id) not in Record_id.keys():
+                            Record_id[(Report_id, Sentence_id)] = Record_id[(Report_id, line[1][1] - pre_i)] + 1    #前の文とつながっていることにする
+                while (Report_id, Sentence_id) not in Record_id.keys(): #ここで新しい辞書型を作る
                     pre_i += 1
                     if (Report_id, Sentence_id - pre_i) in Record_id.keys():
                         Record_id[(Report_id, Sentence_id)] = Record_id[(Report_id, line[1][1] - pre_i)] + 1
                 if first_Sen == len(case_df_perR[u"文_id"].drop_duplicates()) - 1:
-                    tail_key = (Report_id, Sentence_id)
+                    tail_key = (Report_id, Sentence_id)     #何かに使っているかと思ったけど一番最初の文なのかどうかを判断するためくらいしか使ってなさそう？
+
+        # '''追加部分
+        list_dataframe = pd.DataFrame({})
+        list_dataframe['Report_id'] = Report_id_list
+        list_dataframe['Sentence_id'] = Sentence_id_list
+        list_dataframe['before_id'] = before_list
+        list_dataframe['after_id'] = after_list
+        print list_dataframe
+        list_dataframe.to_csv("data/hokan.csv", encoding='shift-jis', index=False)
+        # '''
+
 
         case_df[u"レコード_id"] = [(i, j) for i, j in zip(case_df[u"報告書_id"], case_df[u"文_id"])]
         case_df[u"レコード_id"] = case_df[u"レコード_id"].map(lambda x: Record_id[x])
+
+
+
         return case_df
 
 

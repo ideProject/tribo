@@ -136,12 +136,12 @@ if __name__ == "__main__":
     #格フレームの構築
     print "格フレームの構築"
 
-    '''
+    # '''
     tripleFrame_Treport = pd.read_csv(path_List["Triple_Treport"], encoding='shift-jis')    #上で作ったTriple_Treport.csvを開く
     case_df = Ce.create_caseframe(tripleFrame_Treport)  #case_df--名詞とか動詞とかidがあってそれごとにどの深層格が割り当てられているかが格納されている
     case_df.to_csv(path_List["caseframe"], encoding='shift-jis', index=False)   #csvに出力
     #'''
-
+    sys.exit()
 
     case_df = pd.read_csv(path_List["caseframe"], encoding='shift-jis')     #上で作ったcaseframe.csvを呼んでいる
 
@@ -160,7 +160,7 @@ if __name__ == "__main__":
     file = open(path_List["idf_Treport_list"], 'w')
     pickle.dump(idf_Treport, file)
     file.close()
-    '''
+    #'''
 
     file = open(path_List["terms_list"])        #抽出した単語リスト
     terms = pickle.load(file)
@@ -253,12 +253,11 @@ if __name__ == "__main__":
 
     case_df_unified, Wdist = Ce.bunrui_frame(case_df_Tcluster_sec, terms, idf_Treport, dist_method, threshould_dist)    #bunrui_frame--類似度の高い各フレームの統合、bunrui_frame(対象の奴、抽出した単語リスト、単語ごとのidf（重み）のリスト、類似度計算の手法、閾値)、
     #idf--一種の一般語フィルタとして働き、多くの文書に出現する語は重要度が下がり、特定の文書にしか出現しない単語の重要度を上げる役割を果たす
-    Wdist.sort_values(by=u"Similarity", ascending=False).to_csv(path_List["Wdist"], encoding='shift-jis')   #WdistのSimilarityを降順にソートしている
+    Wdist.sort_values(by=u"Similarity", ascending=False).to_csv(path_List["Wdist"], encoding='shift-jis')   #WdistのSimilarityを降順にソートし、csvに書き込んでいる
 
-    Wdist = pd.read_csv(path_List["Wdist"], encoding='shift-jis')   #Wdistを出力している
+    # Wdist = pd.read_csv(path_List["Wdist"], encoding='shift-jis')   #Wdistを読み込んでいる
 
 
-    #↓動かない
     #設備クラスタごとに事象の出現の有無(0, 1)行列の作成
     print "設備クラスタごとに事象の出現の有無(0, 1)行列の作成"
     for cluster in Tcluster[u"$T1-TwoStep"].drop_duplicates():

@@ -291,6 +291,10 @@ class Cases_extract:
         # SurfaceCase_Noun = [[] for i in range(len(Dc.dummylist[2].columns)+1)]
         Verb_target = []
         Verb_target_id = []
+
+        result_tmp = [0,0,0,0,0,0,0]
+        int_tmp = 0
+
         for Report_id in tripleFrame_Treport[u"報告書_id"].drop_duplicates():  #drop_duplicates--重複しているものは削除
             tripleFrame_Treport_sort = tripleFrame_Treport.ix[tripleFrame_Treport[u"報告書_id"] == Report_id,      #dataframe.ix[]--index、column両方を指定して検索ができる
                                        :].sort_index(by=[u"文_id", u"動詞_id"])                                    #今回は報告書idがfor文の変数と同じものを指定している。
@@ -308,6 +312,12 @@ class Cases_extract:
                         continue
                     print Report_id, SV_id[0], SV_id[1]     #Report_id--報告書id、SV_id[0]--文_id、SV_id[1]--動詞_id
                     Result = self.Dc.predict(Noun, Particle, Verb)  #リスト型で、名詞や動詞とその情報が格納されたものとNNの出力値が入っている
+
+                    for tmpo in Result:
+                        tmpolist = list(tmpo[1])
+                        result_tmp = [x + y for (x,y) in zip(result_tmp,tmpolist)]
+                        int_tmp += 1
+
                     DeepCase_unique = self.Dc.identify(Result)  #DeepCase_unique--深層格のどれに当たるのかをNNの値から求めている
                     # print Noun, Particle, Verb, DeepCase_unique
 
@@ -354,6 +364,12 @@ class Cases_extract:
         case_df.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True)
 
         # case_df[u"報告書_id"] = [int(i) for i in case_df[u"報告書_id"]]
+        result_tmp = [x/int_tmp for x in result_tmp]
+        list_tmp = pd.DataFrame({})
+        list_tmp['tmp'] = list_tmp
+        list_tmp.to_csv("data/tmp.csv", encoding='shift-jis', index=False)
+        sys.exit()
+
         return case_df
     #重み付けを行うために語句を抽出
     def extract_terms(self, case_df):
@@ -614,6 +630,7 @@ class Cases_extract:
 
     #因果連鎖分割（因果連鎖番号の割り当て）
     def Section_div(self, case_df, VC_Dc, thresold_perD):   #case_df--設備クラスタ、VC_Dc--共起頻度、thresold_preD--閾値
+        ide = 0
         Record_id = dict()  # 文_id:レコード_id
         Record_id[(case_df.ix[0, :][u"報告書_id"], case_df.ix[0, :][u"文_id"])] = 0     #Record_idの初期化
         tail_key = -1
@@ -622,6 +639,8 @@ class Cases_extract:
         Report_id_list = []
         Sentence_id_list = []
         for Report_id in case_df[u"報告書_id"].drop_duplicates():      #Report_idに報告書idが入る
+            if ide == 1:
+                break
             print u"Extracting SecN_id:", Report_id
             Noun_pre = dict()       #Noun_preの初期化、報告書ごとの名詞の一覧
             # print Report_id
@@ -632,7 +651,10 @@ class Cases_extract:
                     # print "line[1][1]",line[1][1]   #文id
                     # print "Noun_pre",Noun_pre   #{0L: [u'沈降の影響', u'濃度'], 2L: [u'μm以下の疲労摩耗粒子', u'軸受の寿命の指標'], 4L: [u'リン', u'使用油である日石タービン']}って感じで入る。0Lとかの0は文id、各文ごとの名詞が文idと共に辞書型として格納されている
 
-                    # print line[1][3]
+                    #'''追加部分
+                    before_list.append(case_df.ix[line[0], u"事象"])
+                    #'''
+
                     if line[1][1] not in Noun_pre.keys():   #line[1][1]--文id、がNoun_preのkeyにないとき。最初はこの条件を満たして処理を行い、それ以降はelseの方に行くかな？
                         Noun_pre[line[1][1]] = [l for l in line[1][4:11].values if l != u" "]   #深層格の中にある名詞が入る
                     else:
@@ -645,7 +667,6 @@ class Cases_extract:
                             outList = Lan.getMorpheme() #上で投げた名詞のmecabによる解析結果をoutListに入れる
                             if set([u"代名詞"]).intersection(set([outList[i][2] for i in range(len(outList))])):   #set([a]).intersection(set([b]))--set[a]とset[b]の共通部分だけ出力、if文の中では共通のものがあればTure
                                                                                                                     #mecabで処理を行い代名詞があるとわかった時の条件分岐.代名詞を含んだひとまとまりの事象の時も入る
-                                # '''       ↓謎
                                 #代名詞の出力ベクトルと名詞の出力ベクトルのユークリッド距離が最小の名詞を選択
                                 pronoun_vec = [np.array(out_perD[1]) for out_perD in self.Dc.predict(l, u"", line[1][3]) if #Dc.predict(名詞、助詞、動詞)だからline[1][3]は動詞
                                                np.argmax(np.array(out_perD[1])) == di]  #argmax([A])--[A]の中で最大値を持つインデックスを取得、たぶんifの条件は深層格に複数名詞が割り当てられているときにほしいデータの結果のみを得ようとしている
@@ -670,11 +691,10 @@ class Cases_extract:
                                           min([nmp[1] for nmp in Neuclid_min_perS]) == N_ed[1]]
                                 case_df.ix[line[0], u"事象"] = case_df.ix[line[0], u"事象"].replace(l, toNoun[0])
                                 # print "toNoun[0]",toNoun[0] #ユークリッド距離が一番小さな名詞、代名詞を置き換える用
-                                print "before:Noun_pre",Noun_pre
                                 Noun_pre[line[1][1]][Noun_pre[line[1][1]].index(l)] = toNoun[0]     #ここで"これ"とかの代名詞をtoNoun[0]で補完している
                                 # print "Neuclid_perS",Neuclid_perS   #報告書ごとに深層格に割り当てられた名詞のユークリッド距離を求めている   ユークリッド距離が一番短いものが代名詞補完に使われて要るっぽい
                                 # print "Neuclid_min_perS", Neuclid_min_perS  #求められたユークリッド距離から最小なものを抽出している
-                                print "after:Noun_pre", Noun_pre
+                                ide += 1
                             # '''
 
                                 '''
@@ -730,17 +750,25 @@ class Cases_extract:
 
                         case_zero += u" " + line[1][3]
                         case_zero = re.sub(r" +", u" ", case_zero.strip())      #ゼロ代名詞を補完した事象が入る
+                        case_df.ix[line[0], u"事象"] = case_zero  #case_dfの事象の部分をゼロ代名詞を補完した形に書き換えている
 
                         #'''追加部分
-                        before_list.append(line[1][11])
-                        after_list.append(case_zero)
+                        # before_list.append(line[1][11])
+                        after_list.append(case_df.ix[line[0], u"事象"])
                         Report_id_list.append(Report_id)
                         Sentence_id_list.append(Sentence_id)
                         #'''
 
-                        case_df.ix[line[0], u"事象"] = case_zero
                         for Noun_zero_tmp in Noun_zero.values():
                             Noun_pre[line[1][1]].append(Noun_zero_tmp)  #ゼロ代名詞が加わったNoun_preになっている
+
+
+                    #'''追加部分
+                    else:
+                        after_list.append(case_df.ix[line[0], u"事象"])
+                        Report_id_list.append(Report_id)
+                        Sentence_id_list.append(Sentence_id)
+                        #'''
 
                 # 前の文に含まれる名詞が含まれているか
                 if first_Sen == 0 and tail_key != -1:   #最初の文は前の文とかがないからこの条件に入ってcontinue
@@ -764,12 +792,14 @@ class Cases_extract:
                 if first_Sen == len(case_df_perR[u"文_id"].drop_duplicates()) - 1:
                     tail_key = (Report_id, Sentence_id)     #何かに使っているかと思ったけど一番最初の文なのかどうかを判断するためくらいしか使ってなさそう？
 
+
         # '''追加部分
         list_dataframe = pd.DataFrame({})
         list_dataframe['Report_id'] = Report_id_list
         list_dataframe['Sentence_id'] = Sentence_id_list
         list_dataframe['before_id'] = before_list
         list_dataframe['after_id'] = after_list
+        # list_dataframe['Record_id'] = Record_id[]
         print list_dataframe
         list_dataframe.to_csv("data/hokan.csv", encoding='shift-jis', index=False)
         # '''

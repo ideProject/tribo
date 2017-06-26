@@ -15,7 +15,8 @@ if __name__ == "__main__":
     print u"名詞, 動詞, 名詞クラス, 助詞, 主体, 起点, 対象, 状況, 着点, 手段, 関係"
     Dc = Deepcase(netpath, dummylistpath, NV_classpath)
 
-    Result = Dc.predict(u"摩耗粒子", u"が", u"生じる")
+    # Result = Dc.predict(u"摩耗粒子", u"が", u"生じる")
+    Result = Dc.predict(u"フレーキングの発生",u"が",u"確認されていない")
 
     Dc.output(Result)
 

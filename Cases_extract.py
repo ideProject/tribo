@@ -26,13 +26,16 @@ class Cases_extract:
             for i in range(1, TR.s.nrows):      #TR.s--報告書データ   TR.s.nrows--報告書の行数
                 #if i>TR.s.nrows/2: break   #本番はこれ？もしくはbreak無しのループかも
                 #if i>10: break  #実験用の小規模なループ？
-                if i>1: break   #より小規模なループ
+                if i>2: break   #より小規模なループ
 
+                print "triplelist",triplelist
+                i = 3135
                 print i
 
                 noenc = TR.delete_unnecc(i)     #noenc--いい感じの本文
                 #print TR.s.cell_value(i, 2).replace(u"-", u"")
-                #print noenc
+                # print noenc
+
                 for Sentence_id, perSen in enumerate(noenc.split(u"。")):        #Sentence_id--enumerateで作られたインクリメントが入る　perSen--。区切りの文が入る
                     # TR.s.cell_value(i, 2)
                     Lan = Language(perSen)      #考察の一文を投げてLanguageのオブジェクトを作る
@@ -43,9 +46,12 @@ class Cases_extract:
                                                                                                 #sentence_tok--単語などのまとまりがリスト形式で入っている    [('対象','設備','の'),...]
                     #triple_perR = []
                     #id_perR = []
+                    # print "chunkinfo",chunkinfo
+                    # print "tokinfo",tokinfo
+                    # print "sentence_tok",sentence_tok
                     for chunk in chunkinfo:
                         compnoun_tail_id = -1
-                        for tok_id, tokinfo_mor in enumerate(tokinfo[int(chunk[u"id"])]):   #tok_id--enumrateのインクリメント、tokinfo_mor--
+                        for tok_id, tokinfo_mor in enumerate(tokinfo[int(chunk[u"id"])]):   #tok_id--enumrateのインクリメント、tokinfo_mor--tokinfoのひとまとまりが順に入ってくる
                             #print tok_id, compnoun_tail_id      #tok_id--今の単語の文節番号、compnoun_tail_id--係り先の番号
                             if tok_id <= compnoun_tail_id:      #
                                 continue
@@ -55,8 +61,8 @@ class Cases_extract:
                                 compnoun_tail_id = tok_id
                                 for tok_id_noun in range(tok_id+1, len(tokinfo[int(chunk[u"id"])])-1):
                                     if tokinfo[int(chunk[u"id"])][tok_id_noun][0]==u"名詞" :
-                                        if sentence_tok[int(chunk[u"id"])][tok_id_noun] == u"濃度":
-                                            continue
+                                        # if sentence_tok[int(chunk[u"id"])][tok_id_noun] == u"濃度":
+                                            # continue
                                         Noun += sentence_tok[int(chunk[u"id"])][tok_id_noun]
                                         compnoun_tail_id = tok_id_noun
                                     else:
@@ -115,7 +121,6 @@ class Cases_extract:
                                                     triplelist[id_tuple] = triple_tmp
                                                 #print Noun, Particle, Verb, TR.s.cell_value(i, 2).replace(u"-", u""), Sentence_id, Verb_id
                                                 break
-
             return triplelist
     #事象となりうる名詞が含まれるトリプルを抽出
     def TNoun_extract(self, tripleFrame, NV_class):
@@ -161,8 +166,8 @@ class Cases_extract:
                         noun_Pos2.append(outList[mi][2])
                         noun_comp_tmp = u""
 
-            # print "noun_comp",noun_comp
-            # print "noun_tail",noun_tail
+            print "noun_comp",noun_comp   #各報告書の各トリプルごとにこの処理を行っていて、noun_compにはトリプルの名詞に入っているものの各名詞が入っている
+            # print "noun_tail",noun_tail     #文字通り名詞を分割した最後に当たる部分が入っている
             # print "noun_Pos1",noun_Pos1
             # print "noun_Pos2",noun_Pos2
             # print NV_class[0][1]
@@ -172,19 +177,23 @@ class Cases_extract:
             TVneed = False  #
 
             #トライボロジーに関係する名詞か判定
+            #代名詞ならとりあえず関係する名詞としている
+
             for cni, nounMor in enumerate(noun_comp):   #cni--enumerateによるインクリメント、nounMor--noun_compの名詞
                 if noun_Pos2[cni] == u"代名詞" :   #代名詞ならTNneedをTrue
                     TNneed = True
                     break
                 if nounMor in NV_class[0].keys():   #NV_class(名詞か動詞かのクラス)のなかにあるかないか
-                    noun_target = nounMor   #あるならnoun_targetに代入
-                elif noun_tail[cni] in NV_class[0].keys():  #
-                    noun_target = noun_tail[cni]    #
+                    noun_target = nounMor   #あるならnoun_targetに代入、targetには可能性がある名詞が入るっぽい
+                elif noun_tail[cni] in NV_class[0].keys():  #部分的にでもNV_classに入っているか
+                    noun_target = noun_tail[cni]    #入っていたらnoun_targetに、targetには可能性がある名詞が入るっぽい
                 else:
                     continue    #トライボロジーに関係がない場合は次の単語へ
 
                 # 関係がある可能性があると判断した時
                 for Nclass in NV_class[0][noun_target]:
+                    # print "noun_target",noun_target
+                    # print "Nclass",Nclass     Nclassにはnoun_targetに入っている名詞の上位クラスが入るっぽい
                     if Nclass in TW.TNounclass_all: #NclassがTNounclass_all(すべて抽出する)の中にあるならTNneedをTrue
                         TNneed = True
                         break
@@ -209,17 +218,18 @@ class Cases_extract:
             #トライボロジーに関係する動詞か判定
             if TNneed:  #名詞が関係すると判定されているとき
                 if verb in NV_class[1].keys():  #もし動詞がNV_classにあるとき
-                    for Vclass in NV_class[1][verb]:    #
-                        if Vclass in TW.TVerbclass_all:
+                    for Vclass in NV_class[1][verb]:    #verbの上位クラスがVclassに入るっぽい
+                        print "Vclass",Vclass
+                        if Vclass in TW.TVerbclass_all: #TVerbclass_allにVclassがあるならトライボロジーに関係する
                             TVneed = True
                             break
-                        elif Vclass in TW.TVerbclass_Nopart.keys():
+                        elif Vclass in TW.TVerbclass_Nopart.keys(): #部分一致で無ければ抽出に該当するなら
                             TVneed = True
                             for TVerb_Nopart in TW.TVerbclass_Nopart[Vclass]:
-                                if TVerb_Nopart in verb:
+                                if TVerb_Nopart in verb:    #TVerbclass_Nopartに名詞があった時は関係ないとする。(たぶんTWordclassの辞書型の右側にあるものは例外として関係ないと処理するようにリストアップされている奴？)
                                     TVneed = False
 
-                        elif Vclass in TW.TVerbclass_part.keys():
+                        elif Vclass in TW.TVerbclass_part.keys():   #部分一致なら抽出するに該当するなら
                             for TVerb_part in TW.TVerbclass_part[Vclass]:
                                 if TVerb_part in verb:
                                     TVneed = True

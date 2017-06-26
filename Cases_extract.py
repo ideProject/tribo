@@ -652,23 +652,28 @@ class Cases_extract:
     #因果連鎖分割（因果連鎖番号の割り当て）
     def Section_div(self, case_df, VC_Dc, thresold_perD):   #case_df--設備クラスタ、VC_Dc--共起頻度、thresold_preD--閾値
         ide = 0
+
+        par_dic = {u"主体":u"は",u"起点":u"から",u"対象":u"に",u"状況":u"で",u"着点":u"に",u"手段":u"で",u"関係":u"と"}
+
         Record_id = dict()  # 文_id:レコード_id
         Record_id[(case_df.ix[0, :][u"報告書_id"], case_df.ix[0, :][u"文_id"])] = 0     #Record_idの初期化
         tail_key = -1
+
         before_list = []
         after_list = []
         Report_id_list = []
         Sentence_id_list = []
+
         for Report_id in case_df[u"報告書_id"].drop_duplicates():      #Report_idに報告書idが入る
-            if ide == 1:
-                break
+            # if ide == 1:
+            #     break
             print u"Extracting SecN_id:", Report_id
             Noun_pre = dict()       #Noun_preの初期化、報告書ごとの名詞の一覧
             # print Report_id
             case_df_perR = case_df[case_df[u"報告書_id"] == Report_id]     #case_df_perR--抜き出したReport_idと一致する報告書(case_df)のリストが入る、データとしては報告書id、文id、動詞id、動詞、深層格が入る
             for first_Sen, Sentence_id in enumerate(case_df_perR[u"文_id"].drop_duplicates()):       #case_df_perRの文idが入る
                 # print "first_Sen",first_Sen
-                for line in case_df_perR[case_df[u"文_id"] == Sentence_id].iterrows():       #文idがcase_df_perRと一致するリストを抜き出してlineに入れる。lineは各事象ごとの動詞や深層格の情報が入っている。
+                for line in case_df_perR[case_df[u"文_id"] == Sentence_id].iterrows():       #文idがcase_df_perRと一致するタプルを抜き出してlineに入れる。lineは各事象ごとの動詞や深層格の情報が入っている。
                     # print "line[1][1]",line[1][1]   #文id
                     # print "Noun_pre",Noun_pre   #{0L: [u'沈降の影響', u'濃度'], 2L: [u'μm以下の疲労摩耗粒子', u'軸受の寿命の指標'], 4L: [u'リン', u'使用油である日石タービン']}って感じで入る。0Lとかの0は文id、各文ごとの名詞が文idと共に辞書型として格納されている
 
@@ -694,11 +699,28 @@ class Cases_extract:
                                 if len(pronoun_vec) == 0:   #pronoun_vecに何も入っていないとき
                                     pronoun_vec = [np.array(out_perD[1]) for out_perD in self.Dc.predict(l, u"", line[1][3])]
                                 print "pronoun_vec", pronoun_vec  # pronoun_vec--例）[array([ 0.00528617, -0.00143269,  0.81343152,  0.02207774,  0.12166978,0.01644565,  0.02252184])]って感じ。各深層格に対する帰属度が格納される？
+
+                                # '''   先行研究のプログラムの代名詞の補完。深層格推定の時に助詞を入れていない。
                                 Noun_out = [
                                     {Np: [np.array(output[1]) for output in self.Dc.predict(Np, u"", line[1][3])] for Np in
                                      Np_list if Np not in line[1][4:11].values} for Np_list in
                                     [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
                                      line[1][1] - pre_i in Noun_pre.keys()]]
+                                print "before_Noun_out",Noun_out
+                                # '''
+
+
+                                # '''   追加部分：代名詞が使われた深層格に対し、感度分析で取得したルールを反映させ代名詞補完を行っている。
+                                # print "line[1][di + 4]",line[1].keys()[di + 4]  #line[1].keys()[di + 4]--代名詞が使われた深層格の名前がわかる
+                                Noun_out = [
+                                    {Np: [np.array(output[1]) for output in self.Dc.predict(Np, par_dic[line[1].keys()[di + 4]], line[1][3])] for Np in
+                                     Np_list if Np not in line[1][4:11].values} for Np_list in
+                                    [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
+                                     line[1][1] - pre_i in Noun_pre.keys()]]
+                                print "after_Noun_out",Noun_out
+                                # '''
+
+
                                 if len(Noun_out[0]) == 0:   #何も入ってなかったら消す
                                     del Noun_out[0]
                                 if len(Noun_out) == 0:  #Noun_outにまだ事象がないならbreak
@@ -711,11 +733,19 @@ class Cases_extract:
                                 toNoun = [N_ed[0] for N_ed in Neuclid_min_perS if
                                           min([nmp[1] for nmp in Neuclid_min_perS]) == N_ed[1]]
                                 case_df.ix[line[0], u"事象"] = case_df.ix[line[0], u"事象"].replace(l, toNoun[0])
+
+                                # '''   追加部分　上で代名詞補完してcase_dfに置き換えてるけど先のプログラムでまた書き換えられちゃってるから直した
+                                tmp1 = list(line)
+                                tmp1[1] = tmp1[1].replace(l, toNoun[0])
+                                line = tuple(tmp1)
+                                print "toNoun[0]",toNoun[0]
+                                # ide += 1
+                                # '''
+
                                 # print "toNoun[0]",toNoun[0] #ユークリッド距離が一番小さな名詞、代名詞を置き換える用
                                 Noun_pre[line[1][1]][Noun_pre[line[1][1]].index(l)] = toNoun[0]     #ここで"これ"とかの代名詞をtoNoun[0]で補完している
                                 # print "Neuclid_perS",Neuclid_perS   #報告書ごとに深層格に割り当てられた名詞のユークリッド距離を求めている   ユークリッド距離が一番短いものが代名詞補完に使われて要るっぽい
                                 # print "Neuclid_min_perS", Neuclid_min_perS  #求められたユークリッド距離から最小なものを抽出している
-                                ide += 1
                             # '''
 
                                 '''
@@ -736,21 +766,41 @@ class Cases_extract:
 
                     # 埋まっていない深層格（ゼロ代名詞）の補完
                     Deep_cand = []
+                    print "line",line
                     for i in [VC_Dc[VC] for VC in self.Dc.NV_class[1][line[1][3]] if VC in VC_Dc]:  #VC_Dc--分類語彙表と動詞項構造シソーラスの共起頻度、NV_class--動詞か名詞のクラス、NV_class[1][line[1][3]]で動詞を取り出してVC_DcにあればVC_Dcにおけるそのリストをiに入れる
                         Deep_cand += i      #[u'対象', u'関係', u'対象', u'着点']こんな感じで動詞の深層格が入る
-                    # print "Deep_cand",Deep_cand
+                    print "Deep_cand",Deep_cand
                     Count_perD = [Deep_cand.count(d) for d in self.Dc.DeepCaseList]     #self.Dc.DeepCaseList--[u'主体', u'起点', u'対象', u'状況', u'着点', u'手段', u'関係']
                     # print "Count_perD",Count_perD   #Deep_candに含まれる深層格が[u'主体', u'起点', u'対象', u'状況', u'着点', u'手段', u'関係']の形でいくつ現れているのかをカウントしている。例）[0, 0, 2, 0, 1, 0, 1]
                     Dc_toV = [Deep_cor for Deep_cor in
                               [d for d, Deep_cor in zip(self.Dc.DeepCaseList, Count_perD) if
                                sum(Count_perD) / float(len(Count_perD)) < Deep_cor]]
-                    # print "Dc_toV",Dc_toV   #Dc_toV [u'対象', u'着点', u'関係']こんな感じ  もしかしたらここで出てくる奴はゼロ代名詞があると判断された深層格が出てるのかも
+                    # print "Dc_toV",Dc_toV   #Dc_toV [u'対象', u'着点', u'関係']こんな感じ  Dc_toVはシソーラスより共起頻度を求め算出した各動詞に対する割り振るべき深層格の一覧
+                    #この深層格のリストの中身が埋まっていない時、ゼロ代名詞の補完が必要であると判断し、深層格推定を用いてゼロ代名詞補完を行っている
                     # print "line",line
                     Noun_zero = dict()
-                    for Dc_tmp in Dc_toV:
+                    for Dc_tmp in Dc_toV:       #Dc_tmp--ゼロ代名詞補完を行うべき各深層格
                         if line[1][Dc_tmp] == u" ":     #Dc_toVで出た深層格が埋まっていないとき
+
+                            print Dc_tmp
+
+                            # '''   先行研究のプログラム：深層格推定の時に助詞をu""にしている
                             Noun_out = [{Np: max([output[1][self.Dc.DeepCaseList.index(Dc_tmp)] for output in self.Dc.predict(Np, u"", line[1][3])]) for Np in Np_list if Np not in line[1][4:11].values} for Np_list in [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
                                                     line[1][1] - pre_i in Noun_pre.keys()]] #Noun_out--入る可能性がある名詞とその帰属度が辞書型で格納されている。
+                            # '''
+
+                            print "before_Noun_out",Noun_out
+
+                            # '''   追加部分：深層格推定の時に助詞を
+                            Noun_out = [{Np: max([output[1][self.Dc.DeepCaseList.index(Dc_tmp)] for output in
+                                                  self.Dc.predict(Np, par_dic[Dc_tmp], line[1][3])]) for Np in Np_list if
+                                         Np not in line[1][4:11].values} for Np_list in
+                                        [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
+                                         line[1][1] - pre_i in Noun_pre.keys()]]
+
+                            print "after _Noun_out",Noun_out
+
+
                             while {} in Noun_out:   #Noun_outのいらない部分である{}を消して整理している
                                 Noun_out.remove({})
                             if len(Noun_out) == 0:  #整理した結果何もなかったらループやり直し
@@ -771,7 +821,10 @@ class Cases_extract:
 
                         case_zero += u" " + line[1][3]
                         case_zero = re.sub(r" +", u" ", case_zero.strip())      #ゼロ代名詞を補完した事象が入る
+
+                        print "before   case_df",case_df.ix[line[0], u"事象"]
                         case_df.ix[line[0], u"事象"] = case_zero  #case_dfの事象の部分をゼロ代名詞を補完した形に書き換えている
+                        print "after    case_df",case_df.ix[line[0], u"事象"]
 
                         #'''追加部分
                         # before_list.append(line[1][11])
@@ -786,6 +839,7 @@ class Cases_extract:
 
                     #'''追加部分
                     else:
+                        print "line[0]",line[0]
                         after_list.append(case_df.ix[line[0], u"事象"])
                         Report_id_list.append(Report_id)
                         Sentence_id_list.append(Sentence_id)
@@ -820,12 +874,9 @@ class Cases_extract:
         list_dataframe['Sentence_id'] = Sentence_id_list
         list_dataframe['before_id'] = before_list
         list_dataframe['after_id'] = after_list
-        # list_dataframe['Record_id'] = Record_id[]
         print list_dataframe
-        list_dataframe.to_csv("data/hokan.csv", encoding='shift-jis', index=False)
+        list_dataframe.to_csv("data/hokan_ver2.csv", encoding='shift-jis', index=False)
         # '''あうあうあう
-
-
         case_df[u"レコード_id"] = [(i, j) for i, j in zip(case_df[u"報告書_id"], case_df[u"文_id"])]
         case_df[u"レコード_id"] = case_df[u"レコード_id"].map(lambda x: Record_id[x])
 

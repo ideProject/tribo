@@ -54,7 +54,8 @@ path_List={
     #分類語彙表と動詞項構造シソーラスの共起頻度
     "VC_Dc": 'data/VC_Dc.list',
     #格フレームに因果連鎖番号を割り当てた結果
-    "caseframe_sec": "data/caseframe_Tcluster_sec.csv",
+    # "caseframe_sec": "data/caseframe_Tcluster_sec.csv",
+    "caseframe_ver2": "data/caseframe_Tcluster_ver2.csv",
     #類似度の高い文の組
     "Wdist": "data/Wdist.csv",
     #設備クラスタ毎の格フレーム（%s -> number）
@@ -113,7 +114,6 @@ if __name__ == "__main__":
     #tripleFrame--triplelistのデータをカラム[報告書id、文id、動詞id、名詞、助詞、動詞]のDataFrameで格納している
     #print tripleFrame
 
-    sys.exit()
 
     '''    ↓Tripleを作る必要がないならコメントアウトしていい
     tripleFrame.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True) #tripleFrameを報告書id、文id、動詞idの順でソートしている
@@ -124,12 +124,12 @@ if __name__ == "__main__":
     # トリプルから事象の抽出
     print "トリプルから事象の抽出"
 
-    # '''    ↓Tripleを作る必要がないならコメントアウトしていい
-    tripleFrame = pd.read_csv(path_List["Triple_sec"], encoding='shift-jis')    #上で作ったTripleを読み取っている
+    '''    ↓Tripleを作る必要がないならコメントアウトしていい
+    tripleFrame = pd.read_csv(path_List["Triple"], encoding='shift-jis')    #上で作ったTripleを読み取っている
+    # tripleFrame = pd.read_csv(path_List["Triple_sec"], encoding='shift-jis')    #上で作ったTripleを読み取っている
     tripleFrame_Treport = Ce.TNoun_extract(tripleFrame, Dc.NV_class)    #NV_class--名詞、動詞クラスの辞書、TNoun_extract--事象となりうる名詞が含まれるトリプルを抽出
     tripleFrame_Treport.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True)     #tripleFrame_Treportをソートする
     print "tripleFrame_Treport",tripleFrame_Treport
-    sys.exit()
     # tripleFrame_Treport.to_csv(path_List["Triple_Treport"], index=False, encoding='shift-jis')      #csvで出力
     #'''
 
@@ -143,7 +143,7 @@ if __name__ == "__main__":
     #格フレームの構築
     print "格フレームの構築"
 
-    # '''
+    '''       ↓caseframeを作る必要がないならコメントアウトしていい
     tripleFrame_Treport = pd.read_csv(path_List["Triple_Treport"], encoding='shift-jis')    #上で作ったTriple_Treport.csvを開く
     case_df = Ce.create_caseframe(tripleFrame_Treport)  #case_df--名詞とか動詞とかidがあってそれごとにどの深層格が割り当てられているかが格納されている
     case_df.to_csv(path_List["caseframe"], encoding='shift-jis', index=False)   #csvに出力
@@ -226,6 +226,7 @@ if __name__ == "__main__":
 
     case_df_Tcluster_sec = Ce.Section_div(case_df_Tcluster, VC_Dc, thresold_perD)   #case_df_Tcluster--設備クラスタに含まれるデータにおける格フレーム、VC_Dc--分類語彙表と動詞項構造シソーラスの共起頻度、thresold_perD--閾値
     #case_df_Tcluster_sec.to_csv(path_List["caseframe_sec"], encoding='shift-jis', index=False)      #case_df_Tcluster_secをcsvに出力
+    case_df_Tcluster_sec.to_csv(path_List["caseframe_ver2"], encoding='shift-jis', index=False)      #case_df_Tcluster_secをcsvに出力
     sys.exit()
     #'''
 

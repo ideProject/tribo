@@ -292,12 +292,15 @@ class Cases_extract:
         Verb_target = []
         Verb_target_id = []
 
+        #'''追加部分
         result_tmp = [0,0,0,0,0,0,0]
         int_tmp = 0
+        #'''
 
         for Report_id in tripleFrame_Treport[u"報告書_id"].drop_duplicates():  #drop_duplicates--重複しているものは削除
             tripleFrame_Treport_sort = tripleFrame_Treport.ix[tripleFrame_Treport[u"報告書_id"] == Report_id,      #dataframe.ix[]--index、column両方を指定して検索ができる
                                        :].sort_index(by=[u"文_id", u"動詞_id"])                                    #今回は報告書idがfor文の変数と同じものを指定している。
+
             for SV_id in Series(
                     zip(tripleFrame_Treport_sort[u"文_id"], tripleFrame_Treport_sort[u"動詞_id"])).drop_duplicates():  #tripleFrame_Treport_sortの文idと動詞idを同時にfor文で回している
                 for index_perF, triple_perF in enumerate(tripleFrame_Treport_sort[
@@ -313,10 +316,13 @@ class Cases_extract:
                     print Report_id, SV_id[0], SV_id[1]     #Report_id--報告書id、SV_id[0]--文_id、SV_id[1]--動詞_id
                     Result = self.Dc.predict(Noun, Particle, Verb)  #リスト型で、名詞や動詞とその情報が格納されたものとNNの出力値が入っている
 
-                    for tmpo in Result:
-                        tmpolist = list(tmpo[1])
-                        result_tmp = [x + y for (x,y) in zip(result_tmp,tmpolist)]
+                    #'''追加部分
+                    for subResult in Result:
+                        tmplist = list(subResult[1])
+                        result_tmp = [x + y for (x,y) in zip(result_tmp,tmplist)]
                         int_tmp += 1
+                    #'''
+
 
                     DeepCase_unique = self.Dc.identify(Result)  #DeepCase_unique--深層格のどれに当たるのかをNNの値から求めている
                     # print Noun, Particle, Verb, DeepCase_unique
@@ -364,11 +370,16 @@ class Cases_extract:
         case_df.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True)
 
         # case_df[u"報告書_id"] = [int(i) for i in case_df[u"報告書_id"]]
+
+        #'''追加部分
+        deeplist = [u"主体", u"起点", u"対象", u"状況", u"着点", u"手段", u"関係"]
         result_tmp = [x/int_tmp for x in result_tmp]
         list_tmp = pd.DataFrame({})
-        list_tmp['tmp'] = list_tmp
-        list_tmp.to_csv("data/tmp.csv", encoding='shift-jis', index=False)
+        for i2 in range(len(deeplist)):
+            list_tmp[deeplist[i2]] = [result_tmp[i2]]
+        list_tmp.to_csv("data/deepcaseAVE.csv", encoding='shift-jis', index=False)
         sys.exit()
+        #'''
 
         return case_df
     #重み付けを行うために語句を抽出

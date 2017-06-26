@@ -21,10 +21,14 @@ path_List={
     #名詞・動詞クラスの辞書
     "NV_class": "data/NV_class.Word",
     #診断報告書
-#    "Treport": 'data/report_data_ver4_2.xlsx',
-    "Treport": 'data/report_data_ver4_2_moribden.xlsx',
+   "Treport": 'data/report_data_ver4_2.xlsx',
+    # "Treport": 'data/report_data_ver4_2_moribden.xlsx',
     #抽出したトリプル「名詞＋助詞＋動詞」
     "Triple": "data/Triple.csv",
+
+    #抽出したトリプル「名詞＋助詞＋動詞」
+    "Triple_sec": "data/Triple_sec.csv",
+
     #事象を表すトリプルリスト
     "Triple_Treport": "data/Triple_Treport.csv",
     #名詞クラスに登録されていない名詞
@@ -108,7 +112,8 @@ if __name__ == "__main__":
                              u"動詞":Verblist}, columns=[u"報告書_id", u"文_id", u"動詞_id", u"名詞", u"助詞", u"動詞"])
     #tripleFrame--triplelistのデータをカラム[報告書id、文id、動詞id、名詞、助詞、動詞]のDataFrameで格納している
     #print tripleFrame
-    #sys.exit()
+
+    sys.exit()
 
     '''    ↓Tripleを作る必要がないならコメントアウトしていい
     tripleFrame.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True) #tripleFrameを報告書id、文id、動詞idの順でソートしている
@@ -119,11 +124,13 @@ if __name__ == "__main__":
     # トリプルから事象の抽出
     print "トリプルから事象の抽出"
 
-    '''    ↓Tripleを作る必要がないならコメントアウトしていい
-    tripleFrame = pd.read_csv(path_List["Triple"], encoding='shift-jis')    #上で作ったTripleを読み取っている
+    # '''    ↓Tripleを作る必要がないならコメントアウトしていい
+    tripleFrame = pd.read_csv(path_List["Triple_sec"], encoding='shift-jis')    #上で作ったTripleを読み取っている
     tripleFrame_Treport = Ce.TNoun_extract(tripleFrame, Dc.NV_class)    #NV_class--名詞、動詞クラスの辞書、TNoun_extract--事象となりうる名詞が含まれるトリプルを抽出
     tripleFrame_Treport.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True)     #tripleFrame_Treportをソートする
-    tripleFrame_Treport.to_csv(path_List["Triple_Treport"], index=False, encoding='shift-jis')      #csvで出力
+    print "tripleFrame_Treport",tripleFrame_Treport
+    sys.exit()
+    # tripleFrame_Treport.to_csv(path_List["Triple_Treport"], index=False, encoding='shift-jis')      #csvで出力
     #'''
 
     # 未登録語の登録
@@ -255,7 +262,7 @@ if __name__ == "__main__":
     #idf--一種の一般語フィルタとして働き、多くの文書に出現する語は重要度が下がり、特定の文書にしか出現しない単語の重要度を上げる役割を果たす
     Wdist.sort_values(by=u"Similarity", ascending=False).to_csv(path_List["Wdist"], encoding='shift-jis')   #WdistのSimilarityを降順にソートしている
 
-    Wdist = pd.read_csv(path_List["Wdist"], encoding='shift-jis')   #Wdistを出力している
+    Wdist = pd.read_csv(path_List["Wdist"], encoding='shift-jis')   #Wdistを読み込んでいる
 
 
     #↓動かない

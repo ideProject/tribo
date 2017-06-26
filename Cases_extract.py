@@ -823,7 +823,7 @@ class Cases_extract:
         # list_dataframe['Record_id'] = Record_id[]
         print list_dataframe
         list_dataframe.to_csv("data/hokan.csv", encoding='shift-jis', index=False)
-        # '''
+        # '''あうあう
 
 
         case_df[u"レコード_id"] = [(i, j) for i, j in zip(case_df[u"報告書_id"], case_df[u"文_id"])]

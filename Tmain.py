@@ -148,7 +148,6 @@ if __name__ == "__main__":
     case_df = Ce.create_caseframe(tripleFrame_Treport)  #case_df--名詞とか動詞とかidがあってそれごとにどの深層格が割り当てられているかが格納されている
     case_df.to_csv(path_List["caseframe"], encoding='shift-jis', index=False)   #csvに出力
     #'''
-    sys.exit()
 
     case_df = pd.read_csv(path_List["caseframe"], encoding='shift-jis')     #上で作ったcaseframe.csvを呼んでいる
 

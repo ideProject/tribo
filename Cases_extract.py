@@ -666,8 +666,8 @@ class Cases_extract:
         toNoun_list = []
 
         for Report_id in case_df[u"報告書_id"].drop_duplicates():      #Report_idに報告書idが入る
-            # if ide == 1:
-            #     break
+            if ide == 2:
+                break
             print u"Extracting SecN_id:", Report_id
             Noun_pre = dict()       #Noun_preの初期化、報告書ごとの名詞の一覧
             # print Report_id
@@ -741,7 +741,7 @@ class Cases_extract:
                                 tmp1[1] = tmp1[1].replace(l, toNoun[0])
                                 line = tuple(tmp1)
                                 print "toNoun[0]",toNoun[0]
-                                # ide += 1
+                                ide += 1
                                 # '''
 
                                 # print "toNoun[0]",toNoun[0] #ユークリッド距離が一番小さな名詞、代名詞を置き換える用
@@ -856,17 +856,19 @@ class Cases_extract:
                         #'''
 
                 # 前の文に含まれる名詞が含まれているか
-                if first_Sen == 0 and tail_key != -1:   #最初の文は前の文とかがないからこの条件に入ってcontinue
+                if first_Sen == 0 and tail_key != -1:   #二つ目以降の報告書に入った時にこの条件になる。Record_idが次の報告書idに初期化されている。
+                    print "Report_id",Report_id
+                    print "before_Record_id",Record_id
                     Record_id[(Report_id, Sentence_id)] = Record_id[tail_key] + 1
+                    print "after__Record_id",Report_id
                     continue
                 for pre_i in range(3, 0, -1):   #range(start,stop,step)--今回の場合、3から-1ずつ変化して0になるまでってこと
-                    if line[1][1] - pre_i in Noun_pre.keys():   #line[1][1]は文id、つまり文id-pre_i（３～０）の範囲にNoun_pre.keys()、ゼロ代名詞を補完した名詞が含まれているとき。先行研究ではrange(3.0.-1)と3文前までに名詞が含まれているのかを見ている？
+                    if line[1][1] - pre_i in Noun_pre.keys():   #line[1][1]は文id、つまり文id-pre_i（３～０）の範囲にNoun_pre.keys()--{文id:名詞}の文idの方、が含まれているとき。
                         if set(Noun_pre[line[1][1]]).intersection(set(Noun_pre[line[1][1] - pre_i])):   #前の文章に同じ名詞が出ているなら
                             for pre_j in range(pre_i, -1, -1):
-                                if line[1][1] - pre_j in Noun_pre.keys():   #報告書の名詞リストの中にあったら
+                                if line[1][1] - pre_j in Noun_pre.keys():   #line[1][1] - pre_j(pre_iよりも小さな範囲)がNoun_preのkeysに含まれているなら。つまりlineの名詞が使われている文idがあるなら
                                     Record_id[(Report_id, Sentence_id - pre_j)] = Record_id[
-                                        (Report_id, line[1][1] - pre_i)]        #Record_idは報告書id,文idがどこにかかっているのかを表している?因果連鎖っぽいかも？
-
+                                        (Report_id, line[1][1] - pre_i)]        #Record_idのReport_id(因果連鎖についてまとめているカラム)を更新する
                             break
                         else:
                             Record_id[(Report_id, Sentence_id)] = Record_id[(Report_id, line[1][1] - pre_i)] + 1    #前の文とつながっていることにする

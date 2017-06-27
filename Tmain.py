@@ -87,6 +87,8 @@ if __name__ == "__main__":
     Dc = Deepcase(path_List["Neural_network"], path_List["dummylist"], path_List["NV_class"])       #Deepcaseのオブジェクトを作る
     Ce= Cases_extract(Dc)       #Cases_extractのオブジェクトを作る
 
+    '''いったんコメントアウト
+
     triplelist = Ce.Triple_extract(path_List["Treport"])        #Ce.Triple_extractに報告書データのパスを投げる
     #print triplelist                                           #triplelist--辞書型データで、{(報告書番号,文章番号,動詞番号):[(名詞,助詞,動詞)],......}
     Nounlist = []
@@ -113,7 +115,8 @@ if __name__ == "__main__":
                              u"動詞":Verblist}, columns=[u"報告書_id", u"文_id", u"動詞_id", u"名詞", u"助詞", u"動詞"])
     #tripleFrame--triplelistのデータをカラム[報告書id、文id、動詞id、名詞、助詞、動詞]のDataFrameで格納している
     #print tripleFrame
-
+    
+    '''
 
     '''    ↓Tripleを作る必要がないならコメントアウトしていい
     tripleFrame.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True) #tripleFrameを報告書id、文id、動詞idの順でソートしている

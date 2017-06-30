@@ -666,8 +666,9 @@ class Cases_extract:
         toNoun_list = []
 
         for Report_id in case_df[u"報告書_id"].drop_duplicates():      #Report_idに報告書idが入る
-            if ide == 2:
+            if ide == 30:
                 break
+            ide += 1
             print u"Extracting SecN_id:", Report_id
             Noun_pre = dict()       #Noun_preの初期化、報告書ごとの名詞の一覧
             # print Report_id
@@ -703,11 +704,11 @@ class Cases_extract:
                                 # print "pronoun_vec", pronoun_vec  # pronoun_vec--例）[array([ 0.00528617, -0.00143269,  0.81343152,  0.02207774,  0.12166978,0.01644565,  0.02252184])]って感じ。各深層格に対する帰属度が格納される？
 
                                 # '''   先行研究のプログラムの代名詞の補完。深層格推定の時に助詞を入れていない。
-                                Noun_out = [
-                                    {Np: [np.array(output[1]) for output in self.Dc.predict(Np, u"", line[1][3])] for Np in
-                                     Np_list if Np not in line[1][4:11].values} for Np_list in
-                                    [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
-                                     line[1][1] - pre_i in Noun_pre.keys()]]
+                                # Noun_out = [
+                                #     {Np: [np.array(output[1]) for output in self.Dc.predict(Np, u"", line[1][3])] for Np in
+                                #      Np_list if Np not in line[1][4:11].values} for Np_list in
+                                #     [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
+                                #      line[1][1] - pre_i in Noun_pre.keys()]]
                                 # print "before_Noun_out",Noun_out
                                 # '''
 
@@ -740,8 +741,8 @@ class Cases_extract:
                                 tmp1 = list(line)
                                 tmp1[1] = tmp1[1].replace(l, toNoun[0])
                                 line = tuple(tmp1)
-                                print "toNoun[0]",toNoun[0]
-                                ide += 1
+                                # print "toNoun[0]",toNoun[0]
+                                # ide += 1
                                 # '''
 
                                 # print "toNoun[0]",toNoun[0] #ユークリッド距離が一番小さな名詞、代名詞を置き換える用
@@ -777,7 +778,9 @@ class Cases_extract:
                     Dc_toV = [Deep_cor for Deep_cor in
                               [d for d, Deep_cor in zip(self.Dc.DeepCaseList, Count_perD) if
                                sum(Count_perD) / float(len(Count_perD)) < Deep_cor]]
-                    # print "Dc_toV",Dc_toV   #Dc_toV [u'対象', u'着点', u'関係']こんな感じ  Dc_toVはシソーラスより共起頻度を求め算出した各動詞に対する割り振るべき深層格の一覧
+                    print "動詞",line[1][3]
+                    for t in Dc_toV:
+                        print t.encode('utf-8')   #Dc_toV [u'対象', u'着点', u'関係']こんな感じ  Dc_toVはシソーラスより共起頻度を求め算出した各動詞に対する割り振るべき深層格の一覧
                     #この深層格のリストの中身が埋まっていない時、ゼロ代名詞の補完が必要であると判断し、深層格推定を用いてゼロ代名詞補完を行っている
                     # print "line",line
                     Noun_zero = dict()
@@ -787,11 +790,11 @@ class Cases_extract:
                             # print Dc_tmp
 
                             # '''   先行研究のプログラム：深層格推定の時に助詞をu""にしている
-                            Noun_out = [{Np: max([output[1][self.Dc.DeepCaseList.index(Dc_tmp)] for output in self.Dc.predict(Np, u"", line[1][3])]) for Np in Np_list if Np not in line[1][4:11].values} for Np_list in [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
-                                                    line[1][1] - pre_i in Noun_pre.keys()]] #Noun_out--入る可能性がある名詞とその帰属度が辞書型で格納されている。
+                            # Noun_out = [{Np: max([output[1][self.Dc.DeepCaseList.index(Dc_tmp)] for output in self.Dc.predict(Np, u"", line[1][3])]) for Np in Np_list if Np not in line[1][4:11].values} for Np_list in [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
+                            #                         line[1][1] - pre_i in Noun_pre.keys()]] #Noun_out--入る可能性がある名詞とその帰属度が辞書型で格納されている。
                             # '''
 
-                            # print "before_Noun_out",Noun_out
+                            # print "Noun_out",Noun_out
 
                             # '''   追加部分：深層格推定の時に助詞を
                             Noun_out = [{Np: max([output[1][self.Dc.DeepCaseList.index(Dc_tmp)] for output in
@@ -800,7 +803,7 @@ class Cases_extract:
                                         [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
                                          line[1][1] - pre_i in Noun_pre.keys()]]
 
-                            # print "after _Noun_out",Noun_out
+                            # print "Noun_out",Noun_out
 
 
                             while {} in Noun_out:   #Noun_outのいらない部分である{}を消して整理している
@@ -818,6 +821,8 @@ class Cases_extract:
                         for d, Noun_perD in zip(line[1][4:11].keys(), line[1][4:11].values):    #dに深層格、Noun_perDにその深層格に割り当てられている単語が入る
                             if d in Noun_zero.keys():   #もしdがNoun_zero.keys()に含まれているとき、Noun_zeroにはkeysに深層格が、valuesにその格の名詞が含まれている
                                 case_zero += u" " + Noun_zero[d]    #case_zeroに名詞を加算
+                                print "line[1][1]", line[1][1]
+                                print "ゼロ代名詞補完語",d,":",Noun_zero[d].encode('utf-8')
                             else:
                                 case_zero += u" " + Noun_perD   #dの格にある名詞を加算
 
@@ -857,10 +862,7 @@ class Cases_extract:
 
                 # 前の文に含まれる名詞が含まれているか
                 if first_Sen == 0 and tail_key != -1:   #二つ目以降の報告書に入った時にこの条件になる。Record_idが次の報告書idに初期化されている。
-                    print "Report_id",Report_id
-                    print "before_Record_id",Record_id
                     Record_id[(Report_id, Sentence_id)] = Record_id[tail_key] + 1
-                    print "after__Record_id",Report_id
                     continue
                 for pre_i in range(3, 0, -1):   #range(start,stop,step)--今回の場合、3から-1ずつ変化して0になるまでってこと
                     if line[1][1] - pre_i in Noun_pre.keys():   #line[1][1]は文id、つまり文id-pre_i（３～０）の範囲にNoun_pre.keys()--{文id:名詞}の文idの方、が含まれているとき。
@@ -888,8 +890,9 @@ class Cases_extract:
         list_dataframe['after_id'] = after_list
         list_dataframe['toNoun'] = toNoun_list
         print list_dataframe
-        list_dataframe.to_csv("data/hokan_ver2.csv", encoding='shift-jis', index=False)
+        list_dataframe.to_csv("data/pre_hokanneo.csv", encoding='shift-jis', index=False)
         # '''あうあうあう
+        sys.exit()
         case_df[u"レコード_id"] = [(i, j) for i, j in zip(case_df[u"報告書_id"], case_df[u"文_id"])]
         case_df[u"レコード_id"] = case_df[u"レコード_id"].map(lambda x: Record_id[x])
 

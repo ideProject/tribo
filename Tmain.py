@@ -21,16 +21,22 @@ path_List={
     #名詞・動詞クラスの辞書
     "NV_class": "data/NV_class.Word",
     #診断報告書
-   "Treport": 'data/report_data_ver4_2.xlsx',
+    "Treport": 'data/PreliminaryExperiment/report_pre.xlsx',
+    # "Treport": 'data/report_data_ver4_2.xlsx',
     # "Treport": 'data/report_data_ver4_2_moribden.xlsx',
     #抽出したトリプル「名詞＋助詞＋動詞」
-    "Triple": "data/Triple.csv",
+    # "Triple": "data/Triple.csv",
+    # "Triple": 'data/PreliminaryExperiment/Triple_pre.csv',
+    "Triple": 'data/PreliminaryExperiment/Triple_aft.csv',
 
     #抽出したトリプル「名詞＋助詞＋動詞」
     "Triple_sec": "data/Triple_sec.csv",
 
     #事象を表すトリプルリスト
-    "Triple_Treport": "data/Triple_Treport.csv",
+    # "Triple_Treport": "data/Triple_Treport.csv",
+    # "Triple_Treport": 'data/PreliminaryExperiment/Triple_Treport_pre.csv',
+    "Triple_Treport": 'data/PreliminaryExperiment/Triple_Treport_aft.csv',
+
     #名詞クラスに登録されていない名詞
     "Un_Nounclass": "data/unregistered_NounsClass.csv",
     #動詞クラスに登録されていない語句
@@ -116,7 +122,7 @@ if __name__ == "__main__":
     #tripleFrame--triplelistのデータをカラム[報告書id、文id、動詞id、名詞、助詞、動詞]のDataFrameで格納している
     #print tripleFrame
     
-    '''
+    # '''
 
     '''    ↓Tripleを作る必要がないならコメントアウトしていい
     tripleFrame.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True) #tripleFrameを報告書id、文id、動詞idの順でソートしている
@@ -133,8 +139,9 @@ if __name__ == "__main__":
     tripleFrame_Treport = Ce.TNoun_extract(tripleFrame, Dc.NV_class)    #NV_class--名詞、動詞クラスの辞書、TNoun_extract--事象となりうる名詞が含まれるトリプルを抽出
     tripleFrame_Treport.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True)     #tripleFrame_Treportをソートする
     print "tripleFrame_Treport",tripleFrame_Treport
-    # tripleFrame_Treport.to_csv(path_List["Triple_Treport"], index=False, encoding='shift-jis')      #csvで出力
+    tripleFrame_Treport.to_csv(path_List["Triple_Treport"], index=False, encoding='shift-jis')      #csvで出力
     #'''
+    # sys.exit()
 
     # 未登録語の登録
     '''

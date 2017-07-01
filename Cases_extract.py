@@ -778,9 +778,9 @@ class Cases_extract:
                     Dc_toV = [Deep_cor for Deep_cor in
                               [d for d, Deep_cor in zip(self.Dc.DeepCaseList, Count_perD) if
                                sum(Count_perD) / float(len(Count_perD)) < Deep_cor]]
-                    print "動詞",line[1][3]
-                    for t in Dc_toV:
-                        print t.encode('utf-8')   #Dc_toV [u'対象', u'着点', u'関係']こんな感じ  Dc_toVはシソーラスより共起頻度を求め算出した各動詞に対する割り振るべき深層格の一覧
+                    # print "動詞",line[1][3]
+                    # for t in Dc_toV:
+                    #     print t.encode('utf-8')   #Dc_toV [u'対象', u'着点', u'関係']こんな感じ  Dc_toVはシソーラスより共起頻度を求め算出した各動詞に対する割り振るべき深層格の一覧
                     #この深層格のリストの中身が埋まっていない時、ゼロ代名詞の補完が必要であると判断し、深層格推定を用いてゼロ代名詞補完を行っている
                     # print "line",line
                     Noun_zero = dict()

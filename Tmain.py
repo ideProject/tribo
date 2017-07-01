@@ -85,7 +85,7 @@ if __name__ == "__main__":
     # 全トリプルの抽出
     print "全トリプルの抽出"
     Dc = Deepcase(path_List["Neural_network"], path_List["dummylist"], path_List["NV_class"])       #Deepcaseのオブジェクトを作る
-    Ce= Cases_extract(Dc)       #Cases_extractのオブジェクトを作る
+    Ce= Cases_extract(Dc)       #Cases_extractのオブジ  ェクトを作る
 
     '''いったんコメントアウト
 

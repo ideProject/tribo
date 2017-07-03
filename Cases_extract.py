@@ -26,7 +26,7 @@ class Cases_extract:
             for i in range(1, TR.s.nrows):      #TR.s--報告書データ   TR.s.nrows--報告書の行数
                 #if i>TR.s.nrows/2: break   #本番はこれ？もしくはbreak無しのループかも
                 #if i>10: break  #実験用の小規模なループ？
-                if i>2: break   #より小規模なループ
+                # if i>2: break   #より小規模なループ
 
                 print "triplelist",triplelist
 
@@ -379,7 +379,7 @@ class Cases_extract:
 
         # case_df[u"報告書_id"] = [int(i) for i in case_df[u"報告書_id"]]
 
-        #'''追加部分
+        '''追加部分
         deeplist = [u"主体", u"起点", u"対象", u"状況", u"着点", u"手段", u"関係"]
         result_tmp = [x/int_tmp for x in result_tmp]
         list_tmp = pd.DataFrame({})
@@ -665,8 +665,8 @@ class Cases_extract:
         zero_list = []
 
         for Report_id in case_df[u"報告書_id"].drop_duplicates():      #Report_idに報告書idが入る
-            if ide == 19:
-                break
+            # if ide == 19:
+            #     break
             ide += 1
             print u"Extracting SecN_id:", Report_id
             Noun_pre = dict()       #Noun_preの初期化、報告書ごとの名詞の一覧
@@ -704,22 +704,22 @@ class Cases_extract:
                                 # print "pronoun_vec", pronoun_vec  # pronoun_vec--例）[array([ 0.00528617, -0.00143269,  0.81343152,  0.02207774,  0.12166978,0.01644565,  0.02252184])]って感じ。各深層格に対する帰属度が格納される？
 
                                 # '''   先行研究のプログラムの代名詞の補完。深層格推定の時に助詞を入れていない。
-                                Noun_out = [
-                                    {Np: [np.array(output[1]) for output in self.Dc.predict(Np, u"", line[1][3])] for Np in
-                                     Np_list if Np not in line[1][4:11].values} for Np_list in
-                                    [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
-                                     line[1][1] - pre_i in Noun_pre.keys()]]
+                                # Noun_out = [
+                                #     {Np: [np.array(output[1]) for output in self.Dc.predict(Np, u"", line[1][3])] for Np in
+                                #      Np_list if Np not in line[1][4:11].values} for Np_list in
+                                #     [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
+                                #      line[1][1] - pre_i in Noun_pre.keys()]]
                                 # print "before_Noun_out",Noun_out
                                 # '''
 
 
                                 # '''   追加部分：代名詞が使われた深層格に対し、感度分析で取得したルールを反映させ代名詞補完を行っている。
                                 # print "line[1][di + 4]",line[1].keys()[di + 4]  #line[1].keys()[di + 4]--代名詞が使われた深層格の名前がわかる
-                                # Noun_out = [
-                                #     {Np: [np.array(output[1]) for output in self.Dc.predict(Np, par_dic[line[1].keys()[di + 4]], line[1][3])] for Np in
-                                #      Np_list if Np not in line[1][4:11].values} for Np_list in
-                                #     [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
-                                #      line[1][1] - pre_i in Noun_pre.keys()]]
+                                Noun_out = [
+                                    {Np: [np.array(output[1]) for output in self.Dc.predict(Np, par_dic[line[1].keys()[di + 4]], line[1][3])] for Np in
+                                     Np_list if Np not in line[1][4:11].values} for Np_list in
+                                    [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
+                                     line[1][1] - pre_i in Noun_pre.keys()]]
                                 # print "after_Noun_out",Noun_out
                                 # '''
 
@@ -790,18 +790,18 @@ class Cases_extract:
                             # print Dc_tmp
 
                             # '''   先行研究のプログラム：深層格推定の時に助詞をu""にしている
-                            Noun_out = [{Np: max([output[1][self.Dc.DeepCaseList.index(Dc_tmp)] for output in self.Dc.predict(Np, u"", line[1][3])]) for Np in Np_list if Np not in line[1][4:11].values} for Np_list in [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
-                                                    line[1][1] - pre_i in Noun_pre.keys()]] #Noun_out--入る可能性がある名詞とその帰属度が辞書型で格納されている。
+                            # Noun_out = [{Np: max([output[1][self.Dc.DeepCaseList.index(Dc_tmp)] for output in self.Dc.predict(Np, u"", line[1][3])]) for Np in Np_list if Np not in line[1][4:11].values} for Np_list in [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
+                            #                         line[1][1] - pre_i in Noun_pre.keys()]] #Noun_out--入る可能性がある名詞とその帰属度が辞書型で格納されている。
                             # '''
 
                             # print "Noun_out",Noun_out
 
                             # # '''   追加部分：深層格推定の時に助詞を
-                            # Noun_out = [{Np: max([output[1][self.Dc.DeepCaseList.index(Dc_tmp)] for output in
-                            #                       self.Dc.predict(Np, par_dic[Dc_tmp], line[1][3])]) for Np in Np_list if
-                            #              Np not in line[1][4:11].values} for Np_list in
-                            #             [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
-                            #              line[1][1] - pre_i in Noun_pre.keys()]]
+                            Noun_out = [{Np: max([output[1][self.Dc.DeepCaseList.index(Dc_tmp)] for output in
+                                                  self.Dc.predict(Np, par_dic[Dc_tmp], line[1][3])]) for Np in Np_list if
+                                         Np not in line[1][4:11].values} for Np_list in
+                                        [Noun_pre[line[1][1] - pre_i] for pre_i in range(0, 2) if
+                                         line[1][1] - pre_i in Noun_pre.keys()]]
 
                             # print "Noun_out",Noun_out
 
@@ -894,7 +894,7 @@ class Cases_extract:
         list_dataframe['toNoun'] = toNoun_list
         list_dataframe['zero'] = zero_list
         print list_dataframe
-        list_dataframe.to_csv("data/pre_hokan_zero.csv", encoding='shift-jis', index=False)
+        list_dataframe.to_csv("data/PreliminaryExperiment/Preliminary_hokan_zero_aft.csv", encoding='shift-jis', index=False)
         # '''あうあうあうあう
         sys.exit()
         case_df[u"レコード_id"] = [(i, j) for i, j in zip(case_df[u"報告書_id"], case_df[u"文_id"])]

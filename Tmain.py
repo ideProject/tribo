@@ -21,21 +21,21 @@ path_List={
     #名詞・動詞クラスの辞書
     "NV_class": "data/NV_class.Word",
     #診断報告書
-    "Treport": 'data/PreliminaryExperiment/report_pre.xlsx',
-    # "Treport": 'data/report_data_ver4_2.xlsx',
+    # "Treport": 'data/report_data_ver4_2.xlsx',                    #元々ある報告書データ
     # "Treport": 'data/report_data_ver4_2_moribden.xlsx',
+    "Treport": 'data/PreliminaryExperiment/report_pre.xlsx',        #いただいた報告書の元データから自分で作成した2つ分の報告書データ
     #抽出したトリプル「名詞＋助詞＋動詞」
-    # "Triple": "data/Triple.csv",
-    # "Triple": 'data/PreliminaryExperiment/Triple_pre.csv',
-    "Triple": 'data/PreliminaryExperiment/Triple_aft.csv',
+    # "Triple": "data/Triple.csv",                                  #前のTriple.csvのパス
+    # "Triple": 'data/PreliminaryExperiment/Triple_pre.csv',        #前の辞書で取り出したTripleのパス
+    "Triple": 'data/PreliminaryExperiment/Triple_aft.csv',          #辞書を更新した後で取り出したTripleのパス
 
     #抽出したトリプル「名詞＋助詞＋動詞」
     "Triple_sec": "data/Triple_sec.csv",
 
     #事象を表すトリプルリスト
-    # "Triple_Treport": "data/Triple_Treport.csv",
-    # "Triple_Treport": 'data/PreliminaryExperiment/Triple_Treport_pre.csv',
-    "Triple_Treport": 'data/PreliminaryExperiment/Triple_Treport_aft.csv',
+    # "Triple_Treport": "data/Triple_Treport.csv",  #前のTriple_Treport.csvのパス
+    # "Triple_Treport": 'data/PreliminaryExperiment/Triple_Treport_pre.csv',    #前のmecab辞書で取り出したTriple_Treportのパス
+    "Triple_Treport": 'data/PreliminaryExperiment/Triple_Treport_aft.csv',      #mecab辞書を更新した後で取り出したTriple_Treportのパス
 
     #名詞クラスに登録されていない名詞
     "Un_Nounclass": "data/unregistered_NounsClass.csv",
@@ -46,7 +46,9 @@ path_List={
     #分類語彙表と動詞項構造シソーラスの共起頻度（動詞）
     "Tobun_FromVthe": "data/bunruidb_Vthesaurus.csv",
     #抽出した格フレーム
-    "caseframe": "data/caseframe.csv",
+    # "caseframe": "data/caseframe.csv",    #前のcaseframe.csvのパス
+    "caseframe": "data/PreliminaryExperiment/caseframe_aft.csv",
+
     #抽出した単語リスト
     "terms_list": 'data/terms.list',
     #抽出した文書ごとの単語リスト
@@ -56,12 +58,15 @@ path_List={
     #診断報告書における診断対象の機械の分類結果（設備クラスタ）
     "Tcluster": ("data/Tcluster.xls","Sheet1"),
     #学部研究で分類した設備クラスタに含まれるデータにおける格フレーム
-    "caseframe_Tcluster": "data/caseframe_Tcluster.csv",
+    # "caseframe_Tcluster": "data/caseframe_Tcluster.csv",  #前のcaseframe_Tcluster.csvのパス
+    "caseframe_Tcluster": "data/PreliminaryExperiment/caseframe_Tcluster_aft.csv",
+
     #分類語彙表と動詞項構造シソーラスの共起頻度
     "VC_Dc": 'data/VC_Dc.list',
     #格フレームに因果連鎖番号を割り当てた結果
     # "caseframe_sec": "data/caseframe_Tcluster_sec.csv",
-    "caseframe_ver2": "data/caseframe_Tcluster_ver2.csv",
+    # "caseframe_ver2": "data/caseframe_Tcluster_ver2.csv",
+    "caseframe_ver2": "data/PreliminaryExperiment/caseframe_Tcluster_aft.csv",      #新しい報告書データで辞書更新後に得た事象をもとに因果連鎖分割したデータのパス
     #類似度の高い文の組
     "Wdist": "data/Wdist.csv",
     #設備クラスタ毎の格フレーム（%s -> number）
@@ -194,10 +199,11 @@ if __name__ == "__main__":
 
     EXL = pd.ExcelFile(path_List["Tcluster"][0])  # xlsxファイルをPython上で開く
     Tcluster = EXL.parse(path_List["Tcluster"][1])
-    '''↓case_df_Tclusterを作る必要がないならコメントアウトしていい
-    case_df_Tcluster = case_df.ix[case_df[u"報告書_id"].map(lambda x: x in list(Tcluster[u"分析NO"].drop_duplicates())), :]
+    # '''↓case_df_Tclusterを作る必要がないならコメントアウトしていい
+    # case_df_Tcluster = case_df.ix[case_df[u"報告書_id"].map(lambda x: x in list(Tcluster[u"分析NO"].drop_duplicates())), :]
+    case_df_Tcluster = case_df
     case_df_Tcluster.to_csv(path_List["caseframe_Tcluster"], encoding='shift-jis', index=False)
-    '''
+    # '''
 
     case_df_Tcluster = pd.read_csv(path_List["caseframe_Tcluster"], encoding='shift-jis')   #学部研究で分類した設備クラスタに含まれるデータにおける格フレーム
 
@@ -230,10 +236,13 @@ if __name__ == "__main__":
     VC_Dc = pickle.load(file)
     file.close()
     output_thresold = 80        #threshold--閾値
-    # maxList_perD, thresold_perD = Ce.Cal_thresold(case_df_Tcluster, output_thresold)    #よくわかんないのが返ってくる
-    #thresold_perD--[0.0, 0.38362727590488921, 0.96058661521839106, 0.78590685202242261, 0.92009078381800025, 0.57364750300015199, 0.92492675082770992] 各深層格の確率的なもの？
-    thresold_perD = [0.0, 0.38362727590488921, 0.96058661521839106, 0.78590685202242261, 0.92009078381800025, 0.57364750300015199, 0.92492675082770992] #Ce.Cal_thresold時間かかるからこっちをいったん使う
-
+    maxList_perD, thresold_perD = Ce.Cal_thresold(case_df_Tcluster, output_thresold)    #よくわかんないのが返ってくる
+    # print thresold_perD
+    # thresold_perD--[0.0, 0.38362727590488921, 0.96058661521839106, 0.78590685202242261, 0.92009078381800025, 0.57364750300015199, 0.92492675082770992] 各深層格の確率的なもの？
+    # thresold_perD = [0.0, 0.38362727590488921, 0.96058661521839106, 0.78590685202242261, 0.92009078381800025, 0.57364750300015199, 0.92492675082770992] #Ce.Cal_thresold時間かかるからこっちをいったん使う
+    # thresold_perD[4] = 200
+    print thresold_perD
+    # thresold_perD = [0.0, 0.38362727590488921, 0.96058661521839106, 0.78590685202242261, 20000, 0.57364750300015199, 0.92492675082770992] #着点の閾値を爆上げさせる（着点は補完いらんくね？）
     case_df_Tcluster_sec = Ce.Section_div(case_df_Tcluster, VC_Dc, thresold_perD)   #case_df_Tcluster--設備クラスタに含まれるデータにおける格フレーム、VC_Dc--分類語彙表と動詞項構造シソーラスの共起頻度、thresold_perD--閾値
     #case_df_Tcluster_sec.to_csv(path_List["caseframe_sec"], encoding='shift-jis', index=False)      #case_df_Tcluster_secをcsvに出力
     case_df_Tcluster_sec.to_csv(path_List["caseframe_ver2"], encoding='shift-jis', index=False)      #case_df_Tcluster_secをcsvに出力
@@ -242,7 +251,7 @@ if __name__ == "__main__":
 
     #事象間の類似度算出
     print "事象間の類似度算出"
-    case_df_Tcluster_sec = pd.read_csv(path_List["caseframe_sec"], encoding='shift-jis')        #上で作ったcaseframe_secを読み取る
+    case_df_Tcluster_sec = pd.read_csv(path_List["caseframe_ver2"], encoding='shift-jis')        #上で作ったcaseframe_secを読み取る
     cases = case_df_Tcluster_sec[u"主体"] + " " + case_df_Tcluster_sec[u"起点"] + " " + case_df_Tcluster_sec[u"対象"] + " " + case_df_Tcluster_sec[u"状況"] + " " + \
             case_df_Tcluster_sec[u"着点"] + " " + case_df_Tcluster_sec[u"手段"] + " " + case_df_Tcluster_sec[u"関係"] + " " + case_df_Tcluster_sec[u"動詞"] #cases--すべての事象が入っている
     for i in range(0, len(cases)):  #0～casesの数まで

@@ -401,9 +401,16 @@ class Cases_extract:
                 #print words, u":"
                 if i==len(frame.split(u" "))-1:
                     if words[-2:] != u"する":
-                        MorList_tmp[words] = idf_Treport[terms.index(words)]
+                        if words in terms:
+                            MorList_tmp[words] = idf_Treport[terms.index(words)]
+                        else:
+                            print "スキップされました。"
                     else:
-                        MorList_tmp[words[:-2]] = idf_Treport[terms.index(words[:-2])]
+                        if words[:-2] in terms:
+                            MorList_tmp[words[:-2]] = idf_Treport[terms.index(words[:-2])]
+                        else:
+                            print "スキップされました。"
+
                     #エラー回避用xm
                     Noun_comp = u""
                 else:

@@ -10,6 +10,7 @@ import math
 from Deepcase import Deepcase
 import re
 import random
+import sys
 
 path_List = {
     # 学習済みニューラルネットワーク
@@ -50,6 +51,8 @@ path_List = {
     "caseframe_sec": "data/caseframe_Tcluster_sec.csv",
     # 類似度の高い文の組
     "Wdist": "data/Wdist.csv",
+    # 類似度の高い事象を統合した結果
+    "case_of_unified": "data/case_of_unified.csv",
     # 設備クラスタ毎の格フレーム（%s -> number）
     "caseframe_number": "data/case_frame_%s.csv",
     "caseframe_ClusterNumber": "data/case_frame_cluster-%s.csv",
@@ -80,32 +83,34 @@ if __name__ == "__main__":
     Dc = Deepcase(path_List["Neural_network"], path_List["dummylist"], path_List["NV_class"])
     Ce = Cases_extract(Dc)
     # コメントアウト可
-    triplelist = Ce.Triple_extract(path_List["Treport"])
-    Nounlist = []
-    Particlelist = []
-    Verblist = []
-    Ridlist = []
-    Sidlist = []
-    Vidlist = []
-    for T_keys, T_values in zip(triplelist.keys(), triplelist.values()):
-        for tri_tmp in T_values:
-            Nounlist.append(tri_tmp[0])
-            Particlelist.append(tri_tmp[1])
-            Verblist.append(tri_tmp[2])
-            Ridlist.append(T_keys[0])
-            Sidlist.append(T_keys[1])
-            Vidlist.append(T_keys[2])
-    tripleFrame = DataFrame({u"報告書_id":Ridlist, u"文_id":Sidlist, u"動詞_id":Vidlist, u"名詞":Nounlist, u"助詞":Particlelist, u"動詞":Verblist}, columns=[u"報告書_id", u"文_id", u"動詞_id", u"名詞", u"助詞", u"動詞"])
-    tripleFrame.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True)
-    tripleFrame[u"報告書_id"] = [int(i) for i in tripleFrame[u"報告書_id"]]
-    tripleFrame.to_csv(path_List["Triple"], index=False, encoding='shift-jis')
+    # triplelist = Ce.Triple_extract(path_List["Treport"])
+    # Nounlist = []
+    # Particlelist = []
+    # Verblist = []
+    # Ridlist = []
+    # Sidlist = []
+    # Vidlist = []
+    # for T_keys, T_values in zip(triplelist.keys(), triplelist.values()):
+    #     for tri_tmp in T_values:
+    #         Nounlist.append(tri_tmp[0])
+    #         Particlelist.append(tri_tmp[1])
+    #         Verblist.append(tri_tmp[2])
+    #         Ridlist.append(T_keys[0])
+    #         Sidlist.append(T_keys[1])
+    #         Vidlist.append(T_keys[2])
+    # tripleFrame = DataFrame(
+    #     {u"報告書_id": Ridlist, u"文_id": Sidlist, u"動詞_id": Vidlist, u"名詞": Nounlist, u"助詞": Particlelist,
+    #      u"動詞": Verblist}, columns=[u"報告書_id", u"文_id", u"動詞_id", u"名詞", u"助詞", u"動詞"])
+    # tripleFrame.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True)
+    # tripleFrame[u"報告書_id"] = [int(i) for i in tripleFrame[u"報告書_id"]]
+    # tripleFrame.to_csv(path_List["Triple"], index=False, encoding='shift-jis')
     # '''
     # トリプルから事象の抽出(処理後コメントアウト可)
     # '''
-    tripleFrame = pd.read_csv(path_List["Triple"], encoding='shift-jis')
-    tripleFrame_Treport = Ce.TNoun_extract(tripleFrame, Dc.NV_class)
-    tripleFrame_Treport.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True)
-    tripleFrame_Treport.to_csv(path_List["Triple_Treport"], index=False, encoding='shift-jis')
+    # tripleFrame = pd.read_csv(path_List["Triple"], encoding='shift-jis')
+    # tripleFrame_Treport = Ce.TNoun_extract(tripleFrame, Dc.NV_class)
+    # tripleFrame_Treport.sort_index(by=[u"報告書_id", u"文_id", u"動詞_id"], inplace=True)
+    # tripleFrame_Treport.to_csv(path_List["Triple_Treport"], index=False, encoding='shift-jis')
     # '''
     # 未登録語の登録
     '''
@@ -114,9 +119,9 @@ if __name__ == "__main__":
    '''
     # '''
     # 格フレームの構築（コメントアウト可）
-    tripleFrame_Treport = pd.read_csv(path_List["Triple_Treport"], encoding='shift-jis')
-    case_df = Ce.create_caseframe(tripleFrame_Treport)
-    case_df.to_csv(path_List["caseframe"], encoding='shift-jis', index=False)
+    # tripleFrame_Treport = pd.read_csv(path_List["Triple_Treport"], encoding='shift-jis')
+    # case_df = Ce.create_caseframe(tripleFrame_Treport)
+    # case_df.to_csv(path_List["caseframe"], encoding='shift-jis', index=False)
     # '''
     case_df = pd.read_csv(path_List["caseframe"], encoding='shift-jis')
     # 語句の重み（idf）算出
@@ -146,14 +151,16 @@ idf_Treport = pickle.load(file)
 file.close()
 
 # 設備クラスタ（学部研究で分類した似た特徴を持つ設備）が含まれる報告書の抽出
-print "Tclusterを開いています..."
+print
+"Tclusterを開いています..."
 EXL = pd.ExcelFile(path_List["Tcluster"][0])  # xlsxファイルをPython上で開く
 Tcluster = EXL.parse(path_List["Tcluster"][1])
-print"読み込み完了"
-# コメントアウト可
-case_df_Tcluster = case_df.ix[case_df[u"報告書_id"].map(lambda x: x in list(Tcluster[u"分析NO"].drop_duplicates())), :]
-case_df_Tcluster.to_csv(path_List["caseframe_Tcluster"], encoding='shift-jis', index=False)
-case_df_Tcluster = pd.read_csv(path_List["caseframe_Tcluster"], encoding='shift-jis')
+print
+"読み込み完了"
+# # コメントアウト可
+# case_df_Tcluster = case_df.ix[case_df[u"報告書_id"].map(lambda x: x in list(Tcluster[u"分析NO"].drop_duplicates())), :]
+# case_df_Tcluster.to_csv(path_List["caseframe_Tcluster"], encoding='shift-jis', index=False)
+# case_df_Tcluster = pd.read_csv(path_List["caseframe_Tcluster"], encoding='shift-jis')
 '''
 #動詞項構造シソーラスと対応する分類語彙表の動詞クラスの抽出
 VC_list = case_df_Tcluster[u"動詞"].map(lambda x: Dc.NV_class[1].get(x, ""))
@@ -177,19 +184,21 @@ file.close()
 '''
 # 省略語の補完と因果連鎖分割（コメントアウト）
 # '''
-file = open(path_List["VC_Dc"])
-VC_Dc = pickle.load(file)
-file.close()
-output_thresold = 80
-maxList_perD, thresold_perD = Ce.Cal_thresold(case_df_Tcluster, output_thresold)
-case_df_Tcluster_sec = Ce.Section_div(case_df_Tcluster, VC_Dc, thresold_perD)
-case_df_Tcluster_sec.to_csv(path_List["caseframe_sec"], encoding='shift-jis', index=False)
+# file = open(path_List["VC_Dc"])
+# VC_Dc = pickle.load(file)
+# file.close()
+# output_thresold = 80
+# maxList_perD, thresold_perD = Ce.Cal_thresold(case_df_Tcluster, output_thresold)
+# case_df_Tcluster_sec = Ce.Section_div(case_df_Tcluster, VC_Dc, thresold_perD)
+# case_df_Tcluster_sec.to_csv(path_List["caseframe_sec"], encoding='shift-jis', index=False)
 # '''
 
 # 事象間の類似度算出(コメントアウト可)
 case_df_Tcluster_sec = pd.read_csv(path_List["caseframe_sec"], encoding='shift-jis')
-cases = case_df_Tcluster_sec[u"主体"] + " " + case_df_Tcluster_sec[u"起点"] + " " + case_df_Tcluster_sec[u"対象"] + " " + case_df_Tcluster_sec[u"状況"] + " " + \
-        case_df_Tcluster_sec[u"着点"] + " " + case_df_Tcluster_sec[u"手段"] + " " + case_df_Tcluster_sec[u"関係"] + " " + case_df_Tcluster_sec[u"動詞"]
+cases = case_df_Tcluster_sec[u"主体"] + " " + case_df_Tcluster_sec[u"起点"] + " " + case_df_Tcluster_sec[u"対象"] + " " + \
+        case_df_Tcluster_sec[u"状況"] + " " + \
+        case_df_Tcluster_sec[u"着点"] + " " + case_df_Tcluster_sec[u"手段"] + " " + case_df_Tcluster_sec[u"関係"] + " " + \
+        case_df_Tcluster_sec[u"動詞"]
 for i in range(0, len(cases)):
     cases[i] = re.sub(r" +", u" ", cases[i].strip())
 pro_zeroNoun = case_df_Tcluster_sec.ix[case_df_Tcluster_sec[u"事象"] != cases, :]
@@ -201,14 +210,15 @@ threshould_dist = 0.4
 
 # '''
 # 確認データ数
-N = 10
+N = 100
 ExNlist = random.sample(case_df_Tcluster_sec[u"報告書_id"].drop_duplicates(), N)
 case_df_Tcluster_sec = case_df_Tcluster_sec.ix[case_df_Tcluster_sec[u"報告書_id"].map(lambda x: x in ExNlist), :]
 # '''
 # コメントアウト不可（case_df_unifiedが使用されているため）
 case_df_unified, Wdist = Ce.bunrui_frame(case_df_Tcluster_sec, terms, idf_Treport, dist_method, threshould_dist)
 Wdist.sort_values(by=u"Similarity", ascending=False).to_csv(path_List["Wdist"], encoding='shift-jis')
-
+case_df_unified.to_csv(path_List["case_of_unified"],encoding='shift-jis')
+sys.exit()
 Wdist = pd.read_csv(path_List["Wdist"], encoding='shift-jis')
 
 # 設備クラスタごとに事象の出現の有無(0, 1)行列の作成
@@ -218,7 +228,6 @@ for cluster in Tcluster[u"$T1-TwoStep"].drop_duplicates():
             set(case_df_unified[u"報告書_id"]))
         if len(id_perC_tmp) != 0:
             cluster = cluster.replace(u"クラスター", "cluster")
-            print cluster
             path = path_List["caseframe_number"] % cluster
             case_df_unified.ix[case_df_unified[u"報告書_id"].map(lambda x: x in id_perC_tmp), :].to_csv(path,
                                                                                                      encoding="shift-jis",
